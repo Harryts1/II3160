@@ -41,16 +41,16 @@ app = FastAPI()
 @app.get("/", status_code=200)
 def root():
     return {
-        "message": {
-            "Welcome to the Health Based Dietary Catering!",
-            "valid user_id: 1, 2",
-            "valid menu_item_id: 1, 2"
-            "diet_plans is not integrated with openai api yet so it is still invalid"
-        },
+        "message":"Welcome to the Health Based Dietary Catering!",
         "endpoints": {
             "users": "/users/{user_id}",
             "menu_items": "/menu_items/{menu_item_id}",
             "diet_plans": "/diet_plans"
+        },
+        "message": {
+            "valid user_id: 1, 2",
+            "valid menu_item_id: 1, 2",
+            "diet_plans is not integrated with openai api yet so it is still invalid"
         }
     }
 
