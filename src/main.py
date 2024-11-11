@@ -47,7 +47,7 @@ def root():
             "menu_items": "/menu_items/{menu_item_id}",
             "diet_plans": "/diet_plans"
         },
-        "message": {
+        "notes": {
             "valid user_id: 1, 2",
             "valid menu_item_id: 1, 2",
             "diet_plans is not integrated with openai api yet so it is still invalid"
