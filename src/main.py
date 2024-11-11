@@ -37,10 +37,16 @@ menu_items: List[MenuItem] = [
 
 diet_plans: List[DietPlan] = []
 
+app = FastAPI()
 @app.get("/", status_code=200)
 def root():
     return {
-        "message": "Welcome to the Health Based Dietary Catering!",
+        "message": {
+            "Welcome to the Health Based Dietary Catering!",
+            "valid user_id: 1, 2",
+            "valid menu_item_id: 1, 2"
+            "diet_plans is not integrated with openai api yet so it is still invalid"
+        },
         "endpoints": {
             "users": "/users/{user_id}",
             "menu_items": "/menu_items/{menu_item_id}",
