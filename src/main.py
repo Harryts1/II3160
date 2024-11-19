@@ -175,15 +175,20 @@ async def login(request: Request):
     try:
         return await oauth.auth0.authorize_redirect(
             request,
-            AUTH0_CALLBACK_URL
+            AUTH0_CALLBACK_URL,
+            scope="openid profile email"
         )
     except Exception as e:
+        print(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/callback")
 async def callback(request: Request):
     try:
         token = await oauth.auth0.authorize_access_token(request)
+        if not token:
+            return RedirectResponse(url='/login', status_code=303)
+        
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
