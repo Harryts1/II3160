@@ -1,13 +1,8 @@
 fastapi
-pydantic
 uvicorn
-openai
-python-jose[cryptography]
-authlib
-starlette
-python-dotenv
 python-multipart
-itsdangerous
+python-jose[cryptography]
+passlib[bcrypt]
+authlib
 httpx
-jwt
-pyJWT
+starlette
