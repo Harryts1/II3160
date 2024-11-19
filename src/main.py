@@ -195,7 +195,7 @@ async def logout(request: Request):
     return RedirectResponse(
         url=f"https://{AUTH0_DOMAIN}/v2/logout?"
         f"client_id={AUTH0_CLIENT_ID}&"
-        f"returnTo=http://127.0.0.1:8000"
+        f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
     )
 
 @app.post("/users", response_model=User)
