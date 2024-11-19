@@ -99,7 +99,7 @@ oauth.register(
     client_kwargs={
         "scope": "openid profile email",
         "response_type": "code",
-        "token_endpoint_auth_method": "client_secret_post"
+        "audience": AUTH0_AUDIENCE
     }
 )
 
@@ -176,7 +176,7 @@ async def login(request: Request):
         return await oauth.auth0.authorize_redirect(
             request,
             AUTH0_CALLBACK_URL,
-            scope="openid profile email"
+            prompt="login"
         )
     except Exception as e:
         print(f"Login error: {str(e)}")
@@ -184,15 +184,17 @@ async def login(request: Request):
 
 @app.get("/callback")
 async def callback(request: Request):
-   try:
-       token = await oauth.auth0.authorize_access_token(request)
-       userinfo = await oauth.auth0.userinfo(token=token)
-       request.session['token'] = token['access_token']
-       request.session['user'] = dict(userinfo)
-       return RedirectResponse(url='/', status_code=303)
-   except Exception as e:
-       print(f"Callback error: {str(e)}")
-       raise HTTPException(status_code=500, detail=str(e))
+    try:
+        token = await oauth.auth0.authorize_access_token(request)
+        print("Token:", token)  # Debug log
+        userinfo = await oauth.auth0.userinfo(token=token)
+        print("Userinfo:", userinfo)  # Debug log
+        request.session['token'] = token['access_token']
+        request.session['user'] = dict(userinfo)
+        return RedirectResponse(url='/')
+    except Exception as e:
+        print("Error:", str(e))  # Debug log
+        return RedirectResponse(url='/login')
         
 @app.get("/logout")
 async def logout(request: Request):
