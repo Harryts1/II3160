@@ -235,14 +235,18 @@ async def create_diet_plan(diet_plan: DietPlan, current_user: dict = Depends(get
     diet_plans.append(diet_plan)
     return diet_plan
 
+
 def generate_diet_recommendation(diet_plan: DietPlan):
-    prompt = f"Berikan rekomendasi diet sehat berdasarkan menu berikut: {diet_plan.menu_items}"
-    response = openai.Completion.create(
-        engine="davinci",
-        prompt=prompt,
-        max_tokens=1024,
-        n=1,
-        stop=None,
-        temperature=0.5,
-    )
-    return response.choices[0].text
+    return "Diet recommendation functionality coming soon"
+
+#def generate_diet_recommendation(diet_plan: DietPlan):
+#    prompt = f"Berikan rekomendasi diet sehat berdasarkan menu berikut: {diet_plan.menu_items}"
+#    response = openai.Completion.create(
+#        engine="davinci",
+        #prompt=prompt,
+        #max_tokens=1024,
+        #n=1,
+        #stop=None,
+        #temperature=0.5,
+    #)
+    #return response.choices[0].text

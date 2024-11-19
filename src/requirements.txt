@@ -6,3 +6,4 @@ passlib[bcrypt]
 authlib
 httpx
 starlette
+openai
