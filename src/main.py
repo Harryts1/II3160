@@ -60,13 +60,19 @@ diet_plans: List[DietPlan] = []
 
 # FastAPI Setup
 app = FastAPI()
-app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 
 # Add CORS middleware if needed
 from fastapi.middleware.cors import CORSMiddleware
+# FastAPI Setup
+app = FastAPI()
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["https://18222081-ii3160-fastapiproject.vercel.app"],
+    allow_origins=[
+        "https://18222081-ii3160-fastapiproject.vercel.app",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -77,10 +83,9 @@ app.add_middleware(
     secret_key=SECRET_KEY,
     session_cookie="session",
     max_age=1800,
-    same_site="lax",
+    same_site="none",
     https_only=True
 )
-
 # OAuth Setup with Auth0
 oauth = OAuth()
 oauth.register(
@@ -88,13 +93,16 @@ oauth.register(
     client_id=AUTH0_CLIENT_ID,
     client_secret=AUTH0_CLIENT_SECRET,
     server_metadata_url=f'https://{AUTH0_DOMAIN}/.well-known/openid-configuration',
+    authorize_url=f"https://{AUTH0_DOMAIN}/authorize",
+    access_token_url=f"https://{AUTH0_DOMAIN}/oauth/token",
+    api_base_url=f"https://{AUTH0_DOMAIN}",
     client_kwargs={
         "scope": "openid profile email",
         "response_type": "code",
-        "token_endpoint_auth_method": "client_secret_post",
-        "redirect_uri": AUTH0_CALLBACK_URL
+        "token_endpoint_auth_method": "client_secret_post"
     }
 )
+
 # Authentication utilities
 async def verify_token(token: str):
     try:
@@ -176,15 +184,13 @@ async def login(request: Request):
 async def callback(request: Request):
     try:
         token = await oauth.auth0.authorize_access_token(request)
-        print("Token:", token)  # Debug log
-        userinfo = await oauth.auth0.userinfo(token=token)
-        print("Userinfo:", userinfo)  # Debug log
+        userinfo = await oauth.auth0.parse_id_token(request, token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        return RedirectResponse(url='/')
+        return RedirectResponse(url='/', status_code=302)
     except Exception as e:
-        print("Error:", str(e))  # Debug log
-        return RedirectResponse(url='/login')
+        print(f"Callback error: {str(e)}")
+        return RedirectResponse(url='/login', status_code=302)
         
 @app.get("/logout")
 async def logout(request: Request):
