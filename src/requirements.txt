@@ -2,3 +2,12 @@ fastapi
 pydantic
 uvicorn
 openai
+python-jose[cryptography]
+authlib
+starlette
+python-dotenv
+python-multipart
+itsdangerous
+httpx
+jwt
+pyJWT
