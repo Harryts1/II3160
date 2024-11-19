@@ -184,13 +184,13 @@ async def login(request: Request):
 async def callback(request: Request):
     try:
         token = await oauth.auth0.authorize_access_token(request)
-        userinfo = await oauth.auth0.parse_id_token(request, token)
+        userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        return RedirectResponse(url='/', status_code=302)
+        return RedirectResponse(url='/', status_code=303)
     except Exception as e:
         print(f"Callback error: {str(e)}")
-        return RedirectResponse(url='/login', status_code=302)
+        return RedirectResponse(url='/login', status_code=303)
         
 @app.get("/logout")
 async def logout(request: Request):
