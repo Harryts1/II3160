@@ -66,20 +66,19 @@ app.add_middleware(SessionMiddleware, secret_key=SECRET_KEY)
 from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://127.0.0.1:8000"],
+    allow_origins=["https://18222081-ii3160-fastapiproject.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Session middleware with secure configuration
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     session_cookie="session",
-    max_age=1800,  # 30 minutes
+    max_age=1800,
     same_site="lax",
-    https_only=False  # Set to True in production
+    https_only=True
 )
 
 # OAuth Setup with Auth0
