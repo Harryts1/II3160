@@ -14,6 +14,7 @@ from datetime import datetime
 import httpx
 from jwt.algorithms import RSAAlgorithm
 import json
+from fastapi.openapi.utils import get_openapi
 
 # Configuration
 config = Config('.env')
@@ -62,20 +63,27 @@ diet_plans: List[DietPlan] = []
 app = FastAPI(
     title="Health Based Dietary Catering API",
     description="API for managing dietary plans with Auth0 authentication",
+    version="1.0.0",  # Tambahkan versi
+    openapi_version="3.1.0",  # Spesifikasi versi OpenAPI
     openapi_tags=[{
         "name": "auth",
         "description": "Authentication endpoints"
-    }],
-    swagger_ui_init_oauth={
-        "clientId": AUTH0_CLIENT_ID,
-        "domain": AUTH0_DOMAIN,
-        "appName": "Health Based Dietary Catering",
-        "usePkceWithAuthorizationCodeGrant": True
-    }
+    }]
 )
 
-app.openapi_schema = {
-    "components": {
+def custom_openapi():
+    if app.openapi_schema:
+        return app.openapi_schema
+
+    openapi_schema = get_openapi(
+        title="Health Based Dietary Catering API",
+        version="1.0.0",
+        description="API for managing dietary plans with Auth0 authentication",
+        routes=app.routes,
+    )
+
+    # OAuth2 security scheme
+    openapi_schema["components"] = {
         "securitySchemes": {
             "Auth0": {
                 "type": "oauth2",
@@ -92,9 +100,15 @@ app.openapi_schema = {
                 }
             }
         }
-    },
-    "security": [{"Auth0": ["openid", "profile", "email"]}]
-}
+    }
+
+    # Global security requirement
+    openapi_schema["security"] = [{"Auth0": ["openid", "profile", "email"]}]
+
+    app.openapi_schema = openapi_schema
+    return app.openapi_schema
+
+app.openapi = custom_openapi
 
 # Add CORS middleware if needed
 from fastapi.middleware.cors import CORSMiddleware
@@ -256,8 +270,18 @@ async def logout(request: Request):
         'security': [{'Auth0': ['openid', 'profile', 'email']}]
     })
 
-@app.get("/users/{user_id}", response_model=User)
+@app.get(
+    "/users/{user_id}", 
+    response_model=User,
+    tags=["users"],
+    summary="Get user by ID",
+    security=[{"Auth0": ["openid", "profile", "email"]}]
+)
 async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
+    """
+    Get user information by user ID.
+    Requires authentication using Auth0.
+    """
     for user in users:
         if user.id == user_id:
             return user
