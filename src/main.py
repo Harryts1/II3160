@@ -59,12 +59,45 @@ menu_items: List[MenuItem] = [
 diet_plans: List[DietPlan] = []
 
 # FastAPI Setup
-app = FastAPI()
+app = FastAPI(
+    title="Health Based Dietary Catering API",
+    description="API for managing dietary plans with Auth0 authentication",
+    openapi_tags=[{
+        "name": "auth",
+        "description": "Authentication endpoints"
+    }],
+    swagger_ui_init_oauth={
+        "clientId": AUTH0_CLIENT_ID,
+        "domain": AUTH0_DOMAIN,
+        "appName": "Health Based Dietary Catering",
+        "usePkceWithAuthorizationCodeGrant": True
+    }
+)
+
+app.openapi_schema = {
+    "components": {
+        "securitySchemes": {
+            "Auth0": {
+                "type": "oauth2",
+                "flows": {
+                    "authorizationCode": {
+                        "authorizationUrl": f"https://{AUTH0_DOMAIN}/authorize",
+                        "tokenUrl": f"https://{AUTH0_DOMAIN}/oauth/token",
+                        "scopes": {
+                            "openid": "OpenID Connect",
+                            "profile": "Profile information",
+                            "email": "Email information"
+                        }
+                    }
+                }
+            }
+        }
+    },
+    "security": [{"Auth0": ["openid", "profile", "email"]}]
+}
 
 # Add CORS middleware if needed
 from fastapi.middleware.cors import CORSMiddleware
-# FastAPI Setup
-app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
@@ -172,6 +205,9 @@ async def home():
 
 @app.get("/login")
 async def login(request: Request):
+    """
+    Initiates the Auth0 login process.
+    """
     try:
         return await oauth.auth0.authorize_redirect(
             request,
@@ -184,16 +220,23 @@ async def login(request: Request):
 
 @app.get("/callback")
 async def callback(request: Request):
+    """
+    Handles the Auth0 callback after successful authentication.
+    """
     try:
         token = await oauth.auth0.authorize_access_token(request)
-        print("Token:", token)  # Debug log
         userinfo = await oauth.auth0.userinfo(token=token)
-        print("Userinfo:", userinfo)  # Debug log
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
         return RedirectResponse(url='/')
+    except OAuthError as e:
+        print(f"OAuth error: {str(e)}")
+        return RedirectResponse(url='/login')
+    except MismatchingStateError:
+        print("State mismatch error")
+        return RedirectResponse(url='/login')
     except Exception as e:
-        print("Error:", str(e))  # Debug log
+        print(f"Callback error: {str(e)}")
         return RedirectResponse(url='/login')
         
 @app.get("/logout")
@@ -208,10 +251,10 @@ async def logout(request: Request):
         f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
     )
 
-@app.post("/users", response_model=User)
-async def create_user(user: User, current_user: dict = Depends(get_current_user)):
-    users.append(user)
-    return user
+@app.post("/users", response_model=User,
+    openapi_extra={
+        'security': [{'Auth0': ['openid', 'profile', 'email']}]
+    })
 
 @app.get("/users/{user_id}", response_model=User)
 async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
