@@ -1,4 +1,4 @@
-from fastapi import FastAPI, HTTPException, Depends, Request, Response
+from fastapi import FastAPI, HTTPException, Depends, Request, Response, Security
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 import openai
@@ -15,6 +15,7 @@ import httpx
 from jwt.algorithms import RSAAlgorithm
 import json
 from fastapi.openapi.utils import get_openapi
+from fastapi.security import OAuth2AuthorizationCodeBearer
 
 # Configuration
 config = Config('.env')
@@ -63,12 +64,13 @@ diet_plans: List[DietPlan] = []
 app = FastAPI(
     title="Health Based Dietary Catering API",
     description="API for managing dietary plans with Auth0 authentication",
-    version="1.0.0",  # Tambahkan versi
-    openapi_version="3.1.0",  # Spesifikasi versi OpenAPI
-    openapi_tags=[{
-        "name": "auth",
-        "description": "Authentication endpoints"
-    }]
+    version="1.0.0",
+)
+
+# Define OAuth2 scheme
+oauth2_scheme = OAuth2AuthorizationCodeBearer(
+    authorizationUrl=f"https://{AUTH0_DOMAIN}/authorize",
+    tokenUrl=f"https://{AUTH0_DOMAIN}/oauth/token",
 )
 
 def custom_openapi():
@@ -85,7 +87,7 @@ def custom_openapi():
     # OAuth2 security scheme
     openapi_schema["components"] = {
         "securitySchemes": {
-            "Auth0": {
+            "OAuth2": {
                 "type": "oauth2",
                 "flows": {
                     "authorizationCode": {
@@ -101,9 +103,6 @@ def custom_openapi():
             }
         }
     }
-
-    # Global security requirement
-    openapi_schema["security"] = [{"Auth0": ["openid", "profile", "email"]}]
 
     app.openapi_schema = openapi_schema
     return app.openapi_schema
@@ -274,10 +273,12 @@ async def logout(request: Request):
     "/users/{user_id}", 
     response_model=User,
     tags=["users"],
-    summary="Get user by ID",
-    security=[{"Auth0": ["openid", "profile", "email"]}]
+    summary="Get user by ID"
 )
-async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
+async def get_user(
+    user_id: int, 
+    current_user: dict = Security(get_current_user)
+):
     """
     Get user information by user ID.
     Requires authentication using Auth0.
@@ -286,6 +287,22 @@ async def get_user(user_id: int, current_user: dict = Depends(get_current_user))
         if user.id == user_id:
             return user
     raise HTTPException(status_code=404, detail="User not found")
+
+async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Not authenticated"
+        )
+    
+    try:
+        payload = await verify_token(token)
+        return payload
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=str(e)
+        )   
 
 @app.post("/menu_items", response_model=MenuItem)
 async def create_menu_item(menu_item: MenuItem, current_user: dict = Depends(get_current_user)):
