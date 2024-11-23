@@ -35,6 +35,21 @@ class User(BaseModel):
     email: str
     health_profile: dict
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "John Doe",
+                "email": "john@example.com",
+                "health_profile": {
+                    "age": 30,
+                    "weight": 70,
+                    "height": 175,
+                    "medical_conditions": ["none"]
+                }
+            }
+        }
+
 class MenuItem(BaseModel):
     id: int
     name: str
@@ -65,6 +80,11 @@ app = FastAPI(
     title="Health Based Dietary Catering API",
     description="API for managing dietary plans with Auth0 authentication",
     version="1.0.0",
+    swagger_ui_init_oauth={
+        "clientId": AUTH0_CLIENT_ID,
+        "appName": "Health Based Dietary Catering",
+        "usePkceWithAuthorizationCodeGrant": True
+    }
 )
 
 # Define OAuth2 scheme
@@ -73,37 +93,41 @@ oauth2_scheme = OAuth2AuthorizationCodeBearer(
     tokenUrl=f"https://{AUTH0_DOMAIN}/oauth/token",
 )
 
+async def get_current_user(token: str = Depends(oauth2_scheme)):
+    try:
+        payload = await verify_token(token)
+        return payload
+    except Exception as e:
+        raise HTTPException(
+            status_code=401,
+            detail=str(e)
+        )
+
 def custom_openapi():
     if app.openapi_schema:
         return app.openapi_schema
-
+    
     openapi_schema = get_openapi(
-        title="Health Based Dietary Catering API",
-        version="1.0.0",
-        description="API for managing dietary plans with Auth0 authentication",
+        title=app.title,
+        version=app.version,
+        description=app.description,
         routes=app.routes,
     )
-
-    # OAuth2 security scheme
+    
+    # Add JWT bearer security scheme
     openapi_schema["components"] = {
         "securitySchemes": {
-            "OAuth2": {
-                "type": "oauth2",
-                "flows": {
-                    "authorizationCode": {
-                        "authorizationUrl": f"https://{AUTH0_DOMAIN}/authorize",
-                        "tokenUrl": f"https://{AUTH0_DOMAIN}/oauth/token",
-                        "scopes": {
-                            "openid": "OpenID Connect",
-                            "profile": "Profile information",
-                            "email": "Email information"
-                        }
-                    }
-                }
+            "bearerAuth": {
+                "type": "http",
+                "scheme": "bearer",
+                "bearerFormat": "JWT"
             }
         }
     }
-
+    
+    # Add global security requirement
+    openapi_schema["security"] = [{"bearerAuth": []}]
+    
     app.openapi_schema = openapi_schema
     return app.openapi_schema
 
@@ -270,39 +294,25 @@ async def logout(request: Request):
     })
 
 @app.get(
-    "/users/{user_id}", 
+    "/users/{user_id}",
     response_model=User,
     tags=["users"],
-    summary="Get user by ID"
+    summary="Get user by ID",
+    responses={
+        200: {"description": "Success"},
+        401: {"description": "Not authenticated"},
+        404: {"description": "User not found"}
+    }
 )
-async def get_user(
-    user_id: int, 
-    current_user: dict = Security(get_current_user)
-):
+async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
     """
     Get user information by user ID.
-    Requires authentication using Auth0.
+    Requires authentication.
     """
     for user in users:
         if user.id == user_id:
             return user
     raise HTTPException(status_code=404, detail="User not found")
-
-async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)):
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail="Not authenticated"
-        )
-    
-    try:
-        payload = await verify_token(token)
-        return payload
-    except Exception as e:
-        raise HTTPException(
-            status_code=401,
-            detail=str(e)
-        )   
 
 @app.post("/menu_items", response_model=MenuItem)
 async def create_menu_item(menu_item: MenuItem, current_user: dict = Depends(get_current_user)):
