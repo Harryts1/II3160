@@ -56,11 +56,48 @@ class MenuItem(BaseModel):
     description: str
     nutrition_info: dict
 
+    class Config:
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "name": "Salad",
+                "description": "Fresh garden salad",
+                "nutrition_info": {
+                    "calories": 150,
+                    "protein": 5,
+                    "carbohydrates": 10,
+                    "fat": 7
+                }
+            }
+        }
+
 class DietPlan(BaseModel):
     id: int
     user_id: int
     menu_items: List[MenuItem]
     recommended_by_ai: bool
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "id": 1,
+                "user_id": 1,
+                "menu_items": [
+                    {
+                        "id": 1,
+                        "name": "Salad",
+                        "description": "Fresh garden salad",
+                        "nutrition_info": {
+                            "calories": 150,
+                            "protein": 5,
+                            "carbohydrates": 10,
+                            "fat": 7
+                        }
+                    }
+                ],
+                "recommended_by_ai": True
+            }
+        }
 
 # Sample Data
 users: List[User] = [
@@ -80,20 +117,25 @@ app = FastAPI(
     title="Health Based Dietary Catering API",
     description="API for managing dietary plans with Auth0 authentication",
     version="1.0.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
     swagger_ui_init_oauth={
         "clientId": AUTH0_CLIENT_ID,
         "appName": "Health Based Dietary Catering",
-        "usePkceWithAuthorizationCodeGrant": True
+        "scopes": "openid profile email"
     }
 )
 
-# Define OAuth2 scheme
-oauth2_scheme = OAuth2AuthorizationCodeBearer(
-    authorizationUrl=f"https://{AUTH0_DOMAIN}/authorize",
-    tokenUrl=f"https://{AUTH0_DOMAIN}/oauth/token",
-)
-
-async def get_current_user(token: str = Depends(oauth2_scheme)):
+async def get_current_user(request: Request):
+    token = request.session.get('token')
+    if not token:
+        raise HTTPException(
+            status_code=401,
+            detail="Not authenticated"
+        )
+    
     try:
         payload = await verify_token(token)
         return payload
@@ -114,24 +156,39 @@ def custom_openapi():
         routes=app.routes,
     )
     
-    # Add JWT bearer security scheme
+    # Add security schemes
     openapi_schema["components"] = {
         "securitySchemes": {
-            "bearerAuth": {
-                "type": "http",
-                "scheme": "bearer",
-                "bearerFormat": "JWT"
+            "OAuth2": {
+                "type": "oauth2",
+                "flows": {
+                    "authorizationCode": {
+                        "authorizationUrl": f"https://{AUTH0_DOMAIN}/authorize",
+                        "tokenUrl": f"https://{AUTH0_DOMAIN}/oauth/token",
+                        "scopes": {
+                            "openid": "OpenID connect",
+                            "profile": "Profile",
+                            "email": "Email"
+                        }
+                    }
+                }
             }
         }
     }
     
-    # Add global security requirement
-    openapi_schema["security"] = [{"bearerAuth": []}]
+    # Add global security
+    openapi_schema["security"] = [
+        {
+            "OAuth2": [
+                "openid",
+                "profile",
+                "email"
+            ]
+        }
+    ]
     
     app.openapi_schema = openapi_schema
     return app.openapi_schema
-
-app.openapi = custom_openapi
 
 # Add CORS middleware if needed
 from fastapi.middleware.cors import CORSMiddleware
@@ -206,23 +263,6 @@ async def verify_token(token: str):
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
-# Modified dependency for getting current user
-async def get_current_user(request: Request):
-    token = request.session.get('token')
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail="Not authenticated"
-        )
-    
-    try:
-        payload = await verify_token(token)
-        return payload
-    except Exception as e:
-        raise HTTPException(
-            status_code=401,
-            detail=str(e)
-        )
 # Routes
 @app.get("/")
 async def home():
@@ -288,10 +328,22 @@ async def logout(request: Request):
         f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
     )
 
-@app.post("/users", response_model=User,
-    openapi_extra={
-        'security': [{'Auth0': ['openid', 'profile', 'email']}]
-    })
+@app.post("/users", 
+    response_model=User,
+    tags=["users"],
+    summary="Create new user",
+    responses={
+        200: {"description": "Success"},
+        401: {"description": "Not authenticated"}
+    }
+)
+async def create_user(user: User, current_user: dict = Depends(get_current_user)):
+    """
+    Create a new user.
+    Requires authentication.
+    """
+    users.append(user)
+    return user
 
 @app.get(
     "/users/{user_id}",
