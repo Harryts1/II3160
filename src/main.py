@@ -197,7 +197,7 @@ app.add_middleware(
     allow_origins=origins,
     allow_origin_regex=None,  # Tambahkan ini untuk lebih spesifik
     allow_credentials=True,
-    allow_methods=["GET"],    # Ubah ini ke GET saja
+    allow_methods=["GET, POST"],    # Ubah ini ke GET saja
     allow_headers=["*"],
     expose_headers=["*"],
     max_age=3600
@@ -277,17 +277,20 @@ async def home():
 
 @app.get("/login")
 async def login(request: Request):
-    """
-    Initiates the Auth0 login process.
-    """
     try:
         redirect_uri = AUTH0_CALLBACK_URL
-        return await oauth.auth0.authorize_redirect(
+        response = await oauth.auth0.authorize_redirect(
             request,
             redirect_uri,
             audience=AUTH0_AUDIENCE,
             prompt="login"
         )
+        # Tambahkan header CORS secara manual jika perlu
+        response.headers.update({
+            "Access-Control-Allow-Origin": "https://18222081-ii3160-fastapiproject.vercel.app",
+            "Access-Control-Allow-Credentials": "true"
+        })
+        return response
     except Exception as e:
         print(f"Login error: {str(e)}")
         raise HTTPException(
