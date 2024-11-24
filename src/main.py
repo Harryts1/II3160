@@ -275,13 +275,6 @@ async def home():
         }
     }
 
-@app.options("/login")
-async def login_preflight():
-    """
-    Handle browser's automatic preflight request
-    """
-    return Response(status_code=200)
-
 @app.get("/login")
 async def login(request: Request):
     """
