@@ -276,10 +276,6 @@ async def home():
         }
     }
 
-@app.options("/login")
-async def login_options():
-    return Response(status_code=200)
-
 @app.get("/login")
 async def login(request: Request):
     """
