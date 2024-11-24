@@ -276,22 +276,26 @@ async def home():
         }
     }
 
+@app.options("/login")
+async def login_preflight():
+    """
+    Handle browser's automatic preflight request
+    """
+    return Response(status_code=200)
+
 @app.get("/login")
 async def login(request: Request):
     """
-    Initiates the Auth0 login process with improved error handling.
+    Initiates the Auth0 login process.
     """
     try:
         redirect_uri = AUTH0_CALLBACK_URL
-        # Add headers for CORS
         response = await oauth.auth0.authorize_redirect(
             request,
             redirect_uri,
             audience=AUTH0_AUDIENCE,
             prompt="login"
         )
-        response.headers["Access-Control-Allow-Origin"] = "*"
-        response.headers["Access-Control-Allow-Credentials"] = "true"
         return response
     except Exception as e:
         print(f"Login error: {str(e)}")
