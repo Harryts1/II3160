@@ -119,6 +119,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
+
 async def get_current_user(request: Request):
     token = request.session.get('token')
     if not token:
@@ -188,24 +189,28 @@ origins = [
     "https://18222081-ii3160-fastapiproject.vercel.app",
     "http://localhost:8000",
     "http://127.0.0.1:8000",
-    # Add any other origins that need access
+    "https://18222081-ii3160-fastapiproject.vercel.app/login",  # Add login endpoint
+    "https://18222081-ii3160-fastapiproject.vercel.app/callback",  # Add callback endpoint
+    "*"  # Temporarily allow all origins for testing
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],  # Specify methods explicitly
     allow_headers=["*"],
-    expose_headers=["*"]
+    expose_headers=["*"],
+    max_age=3600,  # Cache preflight requests for 1 hour
 )
 
+# Then add session middleware
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
     session_cookie="session",
     max_age=1800,
-    same_site="lax",
+    same_site="none",  # Changed back to "none" for cross-origin requests
     https_only=True
 )
 # OAuth Setup with Auth0
@@ -271,6 +276,10 @@ async def home():
         }
     }
 
+@app.options("/login")
+async def login_options():
+    return Response(status_code=200)
+
 @app.get("/login")
 async def login(request: Request):
     """
@@ -278,12 +287,16 @@ async def login(request: Request):
     """
     try:
         redirect_uri = AUTH0_CALLBACK_URL
-        return await oauth.auth0.authorize_redirect(
+        # Add headers for CORS
+        response = await oauth.auth0.authorize_redirect(
             request,
             redirect_uri,
             audience=AUTH0_AUDIENCE,
             prompt="login"
         )
+        response.headers["Access-Control-Allow-Origin"] = "*"
+        response.headers["Access-Control-Allow-Credentials"] = "true"
+        return response
     except Exception as e:
         print(f"Login error: {str(e)}")
         raise HTTPException(
