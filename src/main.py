@@ -116,9 +116,17 @@ diet_plans: List[DietPlan] = []
 app = FastAPI(
     title="Health Based Dietary Catering API",
     description="API for managing dietary plans with Auth0 authentication",
-    version="1.0.0"
+    version="1.0.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
+    swagger_ui_init_oauth={
+        "clientId": AUTH0_CLIENT_ID,
+        "appName": "Health Based Dietary Catering",
+        "scopes": "openid profile email"
+    }
 )
-
 
 async def get_current_user(request: Request):
     token = request.session.get('token')
@@ -185,25 +193,18 @@ def custom_openapi():
 # Add CORS middleware if needed
 from fastapi.middleware.cors import CORSMiddleware
 
-origins = [
-    "https://18222081-ii3160-fastapiproject.vercel.app",
-    "http://localhost:8000",
-    "http://127.0.0.1:8000",
-]
-
-
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,
-    allow_origin_regex=None,  # Tambahkan ini untuk lebih spesifik
+    allow_origins=[
+        "https://18222081-ii3160-fastapiproject.vercel.app",
+        "http://localhost:8000",
+        "http://127.0.0.1:8000"
+    ],
     allow_credentials=True,
-    allow_methods=["GET, POST"],    # Ubah ini ke GET saja
+    allow_methods=["*"],
     allow_headers=["*"],
-    expose_headers=["*"],
-    max_age=3600
 )
 
-# Then add session middleware
 app.add_middleware(
     SessionMiddleware,
     secret_key=SECRET_KEY,
@@ -219,12 +220,16 @@ oauth.register(
     client_id=AUTH0_CLIENT_ID,
     client_secret=AUTH0_CLIENT_SECRET,
     server_metadata_url=f'https://{AUTH0_DOMAIN}/.well-known/openid-configuration',
+    authorize_url=f"https://{AUTH0_DOMAIN}/authorize",
+    access_token_url=f"https://{AUTH0_DOMAIN}/oauth/token",
+    api_base_url=f"https://{AUTH0_DOMAIN}",
     client_kwargs={
         "scope": "openid profile email",
         "response_type": "code",
         "audience": AUTH0_AUDIENCE
     }
 )
+
 # Authentication utilities
 async def verify_token(token: str):
     try:
@@ -277,69 +282,51 @@ async def home():
 
 @app.get("/login")
 async def login(request: Request):
+    """
+    Initiates the Auth0 login process.
+    """
     try:
-        redirect_uri = AUTH0_CALLBACK_URL
-        response = await oauth.auth0.authorize_redirect(
+        return await oauth.auth0.authorize_redirect(
             request,
-            redirect_uri,
-            audience=AUTH0_AUDIENCE,
+            AUTH0_CALLBACK_URL,
             prompt="login"
         )
-        # Tambahkan header CORS secara manual jika perlu
-        response.headers.update({
-            "Access-Control-Allow-Origin": "https://18222081-ii3160-fastapiproject.vercel.app",
-            "Access-Control-Allow-Credentials": "true"
-        })
-        return response
     except Exception as e:
         print(f"Login error: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail={"message": "Authentication failed", "error": str(e)}
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/callback")
 async def callback(request: Request):
     """
-    Handles the Auth0 callback with improved error handling and security.
+    Handles the Auth0 callback after successful authentication.
     """
     try:
         token = await oauth.auth0.authorize_access_token(request)
         userinfo = await oauth.auth0.userinfo(token=token)
-        
-        # Store only necessary information
         request.session['token'] = token['access_token']
-        request.session['user'] = {
-            'sub': userinfo['sub'],
-            'email': userinfo['email']
-        }
-        
-        # Redirect to frontend
-        return RedirectResponse(
-            url='https://18222081-ii3160-fastapiproject.vercel.app',
-            status_code=302
-        )
+        request.session['user'] = dict(userinfo)
+        return RedirectResponse(url='/')
+    except OAuthError as e:
+        print(f"OAuth error: {str(e)}")
+        return RedirectResponse(url='/login')
+    except MismatchingStateError:
+        print("State mismatch error")
+        return RedirectResponse(url='/login')
     except Exception as e:
         print(f"Callback error: {str(e)}")
-        return RedirectResponse(
-            url='https://18222081-ii3160-fastapiproject.vercel.app/login',
-            status_code=302
-        )
+        return RedirectResponse(url='/login')
         
 @app.get("/logout")
 async def logout(request: Request):
-    try:
-        request.session.clear()
-        return RedirectResponse(
-            url=f"https://{AUTH0_DOMAIN}/v2/logout?"
-            f"client_id={AUTH0_CLIENT_ID}&"
-            f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
-        )
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail={"message": "Logout failed", "error": str(e)}
-        )
+    # Clear session
+    request.session.clear()
+    
+    # Construct Auth0 logout URL
+    return RedirectResponse(
+        url=f"https://{AUTH0_DOMAIN}/v2/logout?"
+        f"client_id={AUTH0_CLIENT_ID}&"
+        f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
+    )
 
 @app.post("/users", 
     response_model=User,
