@@ -6,6 +6,8 @@
     <title>Dashboard - Health Based Dietary Catering</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
+    <!-- Font Awesome for WhatsApp icon -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -70,6 +72,19 @@
                 </div>
             </div>
         </div>
+
+    <a href="https://wa.me/+6281234567890" 
+       class="fixed bottom-6 right-6 bg-green-500 text-white rounded-full p-4 shadow-lg hover:bg-green-600 transition-all z-50"
+       target="_blank"
+       rel="noopener noreferrer">
+        <i class="fab fa-whatsapp text-2xl"></i>
+    </a>
+
+    <!-- Tooltip for WhatsApp -->
+    <div class="fixed bottom-20 right-6 bg-white px-4 py-2 rounded-lg shadow-lg text-sm hidden" 
+         id="whatsapp-tooltip">
+        Chat with us on WhatsApp!
+    </div>
     </main>
 
     <!-- Footer -->
@@ -80,5 +95,18 @@
     </footer>
 
     <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+    <script>
+        // Show tooltip on hover
+        const whatsappButton = document.querySelector('a[href^="https://wa.me"]');
+        const tooltip = document.getElementById('whatsapp-tooltip');
+    
+        whatsappButton.addEventListener('mouseenter', () => {
+            tooltip.classList.remove('hidden');
+        });
+    
+        whatsappButton.addEventListener('mouseleave', () => {
+            tooltip.classList.add('hidden');
+        });
+    </script>
 </body>
 </html>
