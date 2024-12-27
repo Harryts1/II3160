@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Health Based Dietary Catering</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
+</head>
+<body class="bg-gray-100 min-h-screen">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-lg">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between">
+                <div class="flex space-x-7">
+                    <div class="flex items-center py-4">
+                        <span class="font-semibold text-gray-500 text-lg">Health Based Dietary</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-3">
+                    <span class="text-gray-600">Welcome, {{ user.get('name', 'User') }}</span>
+                    <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600 transition">Logout</a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Health Profile -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Your Health Profile</h2>
+                <div class="space-y-4">
+                    <div class="p-4 bg-gray-50 rounded">
+                        <p class="text-sm font-medium text-gray-500">Email</p>
+                        <p class="text-gray-900">{{ user.get('email', 'No email provided') }}</p>
+                    </div>
+                    <!-- Add more profile information as needed -->
+                </div>
+            </div>
+
+            <!-- Diet Plans -->
+            <div class="bg-white p-6 rounded-lg shadow">
+                <h2 class="text-xl font-semibold mb-4">Your Diet Plans</h2>
+                <div class="space-y-4">
+                    <p class="text-gray-600">No active diet plans yet.</p>
+                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition">
+                        Create New Diet Plan
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Health Metrics -->
+        <div class="mt-6 bg-white p-6 rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Health Metrics</h2>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div class="p-4 bg-gray-50 rounded">
+                    <h3 class="font-medium text-gray-700">Calories Today</h3>
+                    <p class="text-2xl font-bold text-blue-600">0</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded">
+                    <h3 class="font-medium text-gray-700">Active Diet Days</h3>
+                    <p class="text-2xl font-bold text-blue-600">0</p>
+                </div>
+                <div class="p-4 bg-gray-50 rounded">
+                    <h3 class="font-medium text-gray-700">Goals Met</h3>
+                    <p class="text-2xl font-bold text-blue-600">0</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-white shadow-lg mt-12 py-6">
+        <div class="container mx-auto px-4">
+            <p class="text-center text-gray-600">© 2024 Health Based Dietary Catering. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <script src="{{ url_for('static', path='/js/main.js') }}"></script>
+</body>
+</html>

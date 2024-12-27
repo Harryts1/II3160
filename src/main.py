@@ -132,8 +132,8 @@ app = FastAPI(
     }
 )
 
-app.mount("/static", StaticFiles(directory="src/frontend/static"), name="static")
-templates = Jinja2Templates(directory="src/frontend/templates")
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+templates = Jinja2Templates(directory="frontend/templates")
 
 async def get_current_user(request: Request):
     token = request.session.get('token')
@@ -300,7 +300,8 @@ async def callback(request: Request):
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        return RedirectResponse(url='/')
+        # Create a dashboard route to redirect to
+        return RedirectResponse(url='/dashboard', status_code=303)
     except OAuthError as e:
         print(f"OAuth error: {str(e)}")
         return RedirectResponse(url='/login')
@@ -310,6 +311,14 @@ async def callback(request: Request):
     except Exception as e:
         print(f"Callback error: {str(e)}")
         return RedirectResponse(url='/login')
+    
+@app.get("/dashboard", response_class=HTMLResponse)
+async def dashboard(request: Request):
+    # Check if user is authenticated
+    user = request.session.get('user')
+    if not user:
+        return RedirectResponse(url='/login')
+    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
         
 @app.get("/logout")
 async def logout(request: Request):
