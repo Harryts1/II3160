@@ -12,6 +12,22 @@
       "dest": "/src/frontend/static/$1"
     },
     {
+      "src": "/dashboard",
+      "dest": "src/main.py"
+    },
+    {
+      "src": "/login",
+      "dest": "src/main.py"
+    },
+    {
+      "src": "/callback",
+      "dest": "src/main.py"
+    },
+    {
+      "src": "/logout",
+      "dest": "src/main.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "src/main.py"
     }

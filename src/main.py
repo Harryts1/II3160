@@ -314,7 +314,6 @@ async def callback(request: Request):
     
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    # Check if user is authenticated
     user = request.session.get('user')
     if not user:
         return RedirectResponse(url='/login')
