@@ -48,7 +48,7 @@
                 <form id="profileForm" class="space-y-4">
                     <div>
                         <label class="block text-gray-700">Phone Number</label>
-                        <input type="tel" name="phone" id="phone" class="w-full mt-1 p-2 border rounded" value="{{ user_profile.phone if user_profile else '' }}">
+                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded">
                     </div>
                     
                     <div>
@@ -124,55 +124,27 @@
 
     <!-- JavaScript -->
     <script>
-        // Form submission handling
-        document.addEventListener('DOMContentLoaded', function() {
-            const profileForm = document.getElementById('profileForm');
-            const profileModal = document.getElementById('profileModal');
-            const editProfileBtn = document.getElementById('editProfileBtn');
-            const closeProfileModal = document.getElementById('closeProfileModal');
-            const modalFormContainer = document.getElementById('modalFormContainer');
-
-            profileForm.addEventListener('submit', async (e) => {
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
-    
+            
             try {
                 const response = await fetch('/update-profile', {
                     method: 'POST',
-                    body: formData
+                    body: formData,
+                    credentials: 'same-origin' // Penting untuk session handling
                 });
-
-                const data = await response.json();
-        
-                if (response.ok) {
-                    alert('Profile updated successfully!');
-                    window.location.reload();
-                } else {
-                    alert(`Failed to update profile: ${data.detail || 'Unknown error'}`);
+                
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
                 }
+                
+                alert('Profile updated successfully!');
+                window.location.reload();
             } catch (error) {
                 console.error('Error:', error);
                 alert('An error occurred while updating profile. Please try again.');
             }
-        });
-            // Modal handling
-            editProfileBtn.addEventListener('click', (e) => {
-                e.preventDefault();
-                const formClone = profileForm.cloneNode(true);
-                modalFormContainer.innerHTML = '';
-                modalFormContainer.appendChild(formClone);
-                profileModal.classList.remove('hidden');
-            });
-
-            closeProfileModal.addEventListener('click', () => {
-                profileModal.classList.add('hidden');
-            });
-
-            profileModal.addEventListener('click', (e) => {
-                if (e.target === profileModal) {
-                    profileModal.classList.add('hidden');
-                }
-            });
         });
     </script>
 </body>
