@@ -18,6 +18,8 @@ from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2AuthorizationCodeBearer
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
+from pathlib import Path
 
 # Configuration
 config = Config('.env')
@@ -130,12 +132,8 @@ app = FastAPI(
     }
 )
 
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-templates = Jinja2Templates(directory="frontend/templates")
-
-@app.get("/", response_class=HTMLResponse)
-async def serve_home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+app.mount("/static", StaticFiles(directory="src/frontend/static"), name="static")
+templates = Jinja2Templates(directory="src/frontend/templates")
 
 async def get_current_user(request: Request):
     token = request.session.get('token')
@@ -273,21 +271,9 @@ async def verify_token(token: str):
         raise HTTPException(status_code=401, detail=str(e))
 
 # Routes
-@app.get("/")
-async def home():
-    return {
-        "message": "Welcome to the Health Based Dietary Catering!",
-        "endpoints": {
-            "auth": {
-                "login": "/login",
-                "logout": "/logout",
-                "callback": "/callback"
-            },
-            "users": "/users/{user_id}",
-            "menu_items": "/menu_items/{menu_item_id}",
-            "diet_plans": "/diet_plans"
-        }
-    }
+@app.get("/", response_class=HTMLResponse)
+async def serve_home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 @app.get("/login")
 async def login(request: Request):
