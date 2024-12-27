@@ -292,15 +292,13 @@ async def login(request: Request):
 
 @app.get("/callback")
 async def callback(request: Request):
-    """
-    Handles the Auth0 callback after successful authentication.
-    """
     try:
         token = await oauth.auth0.authorize_access_token(request)
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        # Create a dashboard route to redirect to
+        
+        # Use relative path instead of absolute URL
         return RedirectResponse(url='/dashboard', status_code=303)
     except OAuthError as e:
         print(f"OAuth error: {str(e)}")
