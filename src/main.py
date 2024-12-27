@@ -317,31 +317,30 @@ async def callback(request: Request):
 @app.post("/update-profile")
 async def update_profile(request: Request):
     try:
-        # Get user from session
         user = request.session.get('user')
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
-        # Get form data
-        form_data = await request.form()
+        form = await request.form()
+        print("Received form data:", form)  # Debug log
         
-        # Prepare user data with proper type conversion
         user_data = {
             "name": user.get("name", ""),
             "email": user.get("email", ""),
-            "phone": form_data.get("phone", ""),
+            "phone": form.get("phone", ""),
             "health_profile": {
-                "age": int(form_data.get("age", 0)),
-                "weight": float(form_data.get("weight", 0.0)),
-                "height": float(form_data.get("height", 0.0)),
-                "medical_conditions": form_data.get("medical_conditions", "").split(",") if form_data.get("medical_conditions") else [],
-                "allergies": form_data.get("allergies", "").split(",") if form_data.get("allergies") else [],
-                "dietary_preferences": form_data.get("dietary_preferences", "").split(",") if form_data.get("dietary_preferences") else []
+                "age": int(form.get("age", 0)),
+                "weight": float(form.get("weight", 0)),
+                "height": float(form.get("height", 0)),
+                "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
+                "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
+                "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
             },
             "updated_at": datetime.now()
         }
         
-        # Update or create user in MongoDB
+        print("Processed user data:", user_data)  # Debug log
+        
         result = await db.users.update_one(
             {"email": user.get("email")},
             {"$set": user_data},
@@ -349,12 +348,8 @@ async def update_profile(request: Request):
         )
         
         return {"status": "success", "message": "Profile updated successfully"}
-    
-    except ValueError as e:
-        # Handle type conversion errors
-        raise HTTPException(status_code=400, detail=f"Invalid data format: {str(e)}")
     except Exception as e:
-        print(f"Error updating profile: {str(e)}")
+        print(f"Error updating profile: {str(e)}")  # Debug log
         raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/dashboard", response_class=HTMLResponse)

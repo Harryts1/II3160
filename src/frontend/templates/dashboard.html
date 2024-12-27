@@ -15,14 +15,14 @@
             <div class="flex justify-between">
                 <div class="flex items-center space-x-4">
                     <!-- Profile Icon with Dropdown -->
-                    <div class="relative group">
-                        <button class="p-2 rounded-full hover:bg-gray-100">
+                    <div class="relative">
+                        <button class="p-2 rounded-full hover:bg-gray-100" id="profileButton">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </button>
                         <!-- Dropdown Menu -->
-                        <div class="hidden group-hover:block absolute z-50 mt-2 w-48 bg-white rounded-md shadow-lg">
+                        <div id="profileDropdown" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
                             <div class="py-1">
                                 <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
                                 <a href="#" id="editProfileBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit Profile</a>
@@ -48,37 +48,44 @@
                 <form id="profileForm" class="space-y-4">
                     <div>
                         <label class="block text-gray-700">Phone Number</label>
-                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded">
+                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded" 
+                               value="{{ user_profile.phone if user_profile else '' }}">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700">Age</label>
-                        <input type="number" name="age" id="age" class="w-full mt-1 p-2 border rounded" value="{{ user_profile.health_profile.age if user_profile else '' }}">
+                        <input type="number" name="age" class="w-full mt-1 p-2 border rounded"
+                               value="{{ user_profile.health_profile.age if user_profile else '' }}">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700">Weight (kg)</label>
-                        <input type="number" name="weight" id="weight" step="0.1" class="w-full mt-1 p-2 border rounded" value="{{ user_profile.health_profile.weight if user_profile else '' }}">
+                        <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded"
+                               value="{{ user_profile.health_profile.weight if user_profile else '' }}">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700">Height (cm)</label>
-                        <input type="number" name="height" id="height" class="w-full mt-1 p-2 border rounded" value="{{ user_profile.health_profile.height if user_profile else '' }}">
+                        <input type="number" name="height" class="w-full mt-1 p-2 border rounded"
+                               value="{{ user_profile.health_profile.height if user_profile else '' }}">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700">Medical Conditions</label>
-                        <input type="text" name="medical_conditions" id="medical_conditions" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded" value="{{ ','.join(user_profile.health_profile.medical_conditions) if user_profile else '' }}">
+                        <input type="text" name="medical_conditions" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded"
+                               value="{{ ','.join(user_profile.health_profile.medical_conditions) if user_profile else '' }}">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700">Allergies</label>
-                        <input type="text" name="allergies" id="allergies" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded" value="{{ ','.join(user_profile.health_profile.allergies) if user_profile else '' }}">
+                        <input type="text" name="allergies" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded"
+                               value="{{ ','.join(user_profile.health_profile.allergies) if user_profile else '' }}">
                     </div>
                     
                     <div>
                         <label class="block text-gray-700">Dietary Preferences</label>
-                        <input type="text" name="dietary_preferences" id="dietary_preferences" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded" value="{{ ','.join(user_profile.health_profile.dietary_preferences) if user_profile else '' }}">
+                        <input type="text" name="dietary_preferences" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded"
+                               value="{{ ','.join(user_profile.health_profile.dietary_preferences) if user_profile else '' }}">
                     </div>
                     
                     <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition">
@@ -106,24 +113,26 @@
         </a>
     </main>
 
-    <!-- Profile Modal -->
-    <div id="profileModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50">
-        <div class="bg-white rounded-lg m-auto mt-20 max-w-2xl p-6 relative">
-            <div class="flex justify-between items-center mb-4">
-                <h2 class="text-xl font-semibold">Edit Profile</h2>
-                <button id="closeProfileModal" class="text-gray-500 hover:text-gray-700">
-                    <svg class="h-6 w-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                </button>
-            </div>
-            <!-- Form will be moved here when editing -->
-            <div id="modalFormContainer"></div>
-        </div>
-    </div>
-
     <!-- JavaScript -->
     <script>
+        // Dropdown handling
+        const profileButton = document.getElementById('profileButton');
+        const profileDropdown = document.getElementById('profileDropdown');
+        let isDropdownOpen = false;
+
+        profileButton.addEventListener('click', () => {
+            isDropdownOpen = !isDropdownOpen;
+            profileDropdown.classList.toggle('hidden');
+        });
+
+        document.addEventListener('click', (e) => {
+            if (!profileButton.contains(e.target) && !profileDropdown.contains(e.target)) {
+                isDropdownOpen = false;
+                profileDropdown.classList.add('hidden');
+            }
+        });
+
+        // Form submission handling
         document.getElementById('profileForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
@@ -131,20 +140,32 @@
             try {
                 const response = await fetch('/update-profile', {
                     method: 'POST',
-                    body: formData,
-                    credentials: 'same-origin' // Penting untuk session handling
+                    headers: {
+                        'Accept': 'application/json',
+                    },
+                    credentials: 'include',
+                    body: formData
                 });
+
+                const result = await response.json();
                 
-                if (!response.ok) {
-                    throw new Error('Failed to update profile');
+                if (response.ok) {
+                    alert('Profile updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert(`Failed to update profile: ${result.detail || 'Unknown error'}`);
+                    console.error('Error details:', result);
                 }
-                
-                alert('Profile updated successfully!');
-                window.location.reload();
             } catch (error) {
                 console.error('Error:', error);
-                alert('An error occurred while updating profile. Please try again.');
+                alert('An error occurred while updating profile');
             }
+        });
+
+        // Create Diet Plan button handling
+        document.getElementById('createDietPlan').addEventListener('click', () => {
+            // Add your diet plan creation logic here
+            alert('Diet plan creation coming soon!');
         });
     </script>
 </body>
