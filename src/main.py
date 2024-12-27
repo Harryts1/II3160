@@ -303,64 +303,40 @@ async def login(request: Request):
 @app.get("/callback")
 async def callback(request: Request):
     try:
-        # Use httpx client with increased timeout
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            token = await oauth.auth0.authorize_access_token(request)
-            userinfo = await oauth.auth0.userinfo(token=token)
-            request.session['token'] = token['access_token']
-            request.session['user'] = dict(userinfo)
-            
-            # Save user to MongoDB with timeout handling
-            try:
-                user_data = {
-                    "name": userinfo.get("name", ""),
-                    "email": userinfo.get("email", ""),
-                    "phone": "",
-                    "health_profile": {
-                        "age": 0,
-                        "weight": 0.0,
-                        "height": 0.0,
-                        "medical_conditions": [],
-                        "allergies": [],
-                        "dietary_preferences": []
-                    },
-                    "created_at": datetime.now(),
-                    "updated_at": datetime.now()
-                }
-                
-                existing_user = await db.users.find_one(
-                    {"email": userinfo.get("email")},
-                    max_time_ms=5000  # MongoDB timeout
-                )
-                
-                if existing_user:
-                    await db.users.update_one(
-                        {"email": userinfo.get("email")},
-                        {"$set": {"updated_at": datetime.now()}},
-                        max_time_ms=5000
-                    )
-                else:
-                    await db.users.insert_one(user_data, max_time_ms=5000)
-                    
-                return RedirectResponse(url='/dashboard', status_code=303)
-            
-            except Exception as mongo_error:
-                print(f"MongoDB error: {str(mongo_error)}")
-                # Continue even if MongoDB fails
-                return RedirectResponse(url='/dashboard', status_code=303)
-                
-    except TimeoutError as e:
-        print(f"Timeout error: {str(e)}")
-        return RedirectResponse(url='/login?error=timeout')
-    except OAuthError as e:
-        print(f"OAuth error: {str(e)}")
-        return RedirectResponse(url='/login?error=oauth')
-    except MismatchingStateError:
-        print("State mismatch error")
-        return RedirectResponse(url='/login?error=state')
+        token = await oauth.auth0.authorize_access_token(request)
+        userinfo = await oauth.auth0.userinfo(token=token)
+        request.session['token'] = token['access_token']
+        request.session['user'] = dict(userinfo)
+        
+        # Cek user di database
+        existing_user = await db.users.find_one({"email": userinfo.get("email")})
+        
+        if existing_user:
+            # User lama, langsung ke dashboard
+            return RedirectResponse(url='/dashboard', status_code=303)
+        else:
+            # User baru, buat data default
+            user_data = {
+                "name": userinfo.get("name", ""),
+                "email": userinfo.get("email", ""),
+                "phone": "",
+                "health_profile": {
+                    "age": 0,
+                    "weight": 0.0,
+                    "height": 0.0,
+                    "medical_conditions": [],
+                    "allergies": [],
+                    "dietary_preferences": []
+                },
+                "created_at": datetime.now(),
+                "updated_at": datetime.now()
+            }
+            await db.users.insert_one(user_data)
+            # Redirect ke halaman lengkapi profil
+            return RedirectResponse(url='/complete-profile', status_code=303)
     except Exception as e:
-        print(f"General error: {str(e)}")
-        return RedirectResponse(url='/login?error=unknown')
+        print(f"Callback error: {str(e)}")
+        return RedirectResponse(url='/login')
     
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
@@ -381,6 +357,21 @@ async def logout(request: Request):
         f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
     )
 
+@app.get("/complete-profile", response_class=HTMLResponse)
+async def complete_profile(request: Request):
+    user = request.session.get('user')
+    if not user:
+        return RedirectResponse(url='/login')
+        
+    # Cek apakah profil sudah lengkap
+    db_user = await db.users.find_one({"email": user['email']})
+    if db_user and db_user['health_profile']['age'] > 0:
+        return RedirectResponse(url='/dashboard')
+        
+    return templates.TemplateResponse("complete_profile.html", {
+        "request": request, 
+        "user": user
+    })
 
 @app.post("/users", response_model=User, tags=["users"])
 async def create_user(user: User, current_user: dict = Depends(get_current_user)):
