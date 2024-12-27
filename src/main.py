@@ -20,6 +20,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pathlib import Path
+from motor.motor_asyncio import AsyncIOMotorClient
+from datetime import datetime
+
+# MongoDB connection
+config = Config('.env')
+MONGO_URL = config('MONGO_URL', cast=str)
+client = AsyncIOMotorClient(MONGO_URL)
+db = client.dietary_catering
 
 # Configuration
 config = Config('.env')
@@ -30,91 +38,92 @@ AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
 AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
 SECRET_KEY = config('SECRET_KEY', cast=str)
 
-#openai.api_key = config('OPENAI_API_KEY', cast=str)
 
 # Models
 class User(BaseModel):
-    id: int
+    id: Optional[str] = None
     name: str
     email: str
-    health_profile: dict
+    phone: str
+    health_profile: dict = {
+        "age": int,
+        "weight": float,
+        "height": float,
+        "medical_conditions": List[str],
+        "allergies": List[str],
+        "dietary_preferences": List[str]
+    }
+    created_at: datetime = datetime.now()
+    updated_at: datetime = datetime.now()
 
-    class Config:
-        schema_extra = {
-            "example": {
-                "id": 1,
-                "name": "John Doe",
-                "email": "john@example.com",
-                "health_profile": {
-                    "age": 30,
-                    "weight": 70,
-                    "height": 175,
-                    "medical_conditions": ["none"]
-                }
-            }
-        }
-
-class MenuItem(BaseModel):
-    id: int
-    name: str
-    description: str
-    nutrition_info: dict
-
-    class Config:
-        schema_extra = {
-            "example": {
-                "id": 1,
-                "name": "Salad",
-                "description": "Fresh garden salad",
-                "nutrition_info": {
-                    "calories": 150,
-                    "protein": 5,
-                    "carbohydrates": 10,
-                    "fat": 7
-                }
-            }
-        }
+class Consultation(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    consultation_date: datetime
+    concerns: str
+    diet_goals: List[str]
+    preferred_contact_time: str
+    status: str = "pending"  # pending, completed, cancelled
+    notes: Optional[str] = None
+    created_at: datetime = datetime.now()
 
 class DietPlan(BaseModel):
-    id: int
-    user_id: int
-    menu_items: List[MenuItem]
-    recommended_by_ai: bool
+    id: Optional[str] = None
+    user_id: str
+    start_date: datetime
+    end_date: datetime
+    meal_plan: List[dict]
+    calories_target: int
+    protein_target: int
+    carbs_target: int
+    fat_target: int
+    special_instructions: Optional[str] = None
+    created_at: datetime = datetime.now()
+    updated_at: datetime = datetime.now()
+
+class Order(BaseModel):
+    id: Optional[str] = None
+    user_id: str
+    diet_plan_id: str
+    start_date: datetime
+    duration_days: int
+    meals_per_day: int
+    total_amount: float
+    payment_status: str = "pending"
+    delivery_address: dict
+    special_requests: Optional[str] = None
+    created_at: datetime = datetime.now()
+
+class MenuItem(BaseModel):
+    id: Optional[str] = None
+    name: str
+    description: str
+    nutrition_info: dict = {
+        "calories": int,
+        "protein": float,
+        "carbs": float,
+        "fat": float
+    }
+    price: float
+    category: str
+    created_at: datetime = datetime.now()
+    updated_at: datetime = datetime.now()
 
     class Config:
-        schema_extra = {
+        json_schema_extra = {
             "example": {
-                "id": 1,
-                "user_id": 1,
-                "menu_items": [
-                    {
-                        "id": 1,
-                        "name": "Salad",
-                        "description": "Fresh garden salad",
-                        "nutrition_info": {
-                            "calories": 150,
-                            "protein": 5,
-                            "carbohydrates": 10,
-                            "fat": 7
-                        }
-                    }
-                ],
-                "recommended_by_ai": True
+                "name": "Healthy Salad",
+                "description": "Fresh garden salad with grilled chicken",
+                "nutrition_info": {
+                    "calories": 350,
+                    "protein": 25.0,
+                    "carbs": 20.0,
+                    "fat": 15.0
+                },
+                "price": 45000,
+                "category": "main_course"
             }
         }
-
-# Sample Data
-users: List[User] = [
-    User(id=1, name="Alice Smith", email="alice@example.com", health_profile={"age": 30, "weight": 65, "height": 170, "medical_conditions": ["none"]}),
-    User(id=2, name="Bob Johnson", email="bob@example.com", health_profile={"age": 45, "weight": 80, "height": 180, "medical_conditions": ["hypertension"]}),
-]
-
-menu_items: List[MenuItem] = [
-    MenuItem(id=1, name="Salad", description="Fresh garden salad with mixed greens.", nutrition_info={"calories": 150, "protein": 5, "carbohydrates": 10, "fat": 7}),
-    MenuItem(id=2, name="Grilled Chicken", description="Grilled chicken breast with herbs.", nutrition_info={"calories": 200, "protein": 30, "carbohydrates": 0, "fat": 5}),
-]
-
-diet_plans: List[DietPlan] = []
 
 # FastAPI Setup
 app = FastAPI(
@@ -329,62 +338,66 @@ async def logout(request: Request):
         f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
     )
 
-@app.post("/users", 
-    response_model=User,
-    tags=["users"],
-    summary="Create new user",
-    responses={
-        200: {"description": "Success"},
-        401: {"description": "Not authenticated"}
-    }
-)
+
+@app.post("/users", response_model=User, tags=["users"])
 async def create_user(user: User, current_user: dict = Depends(get_current_user)):
     """
     Create a new user.
     Requires authentication.
     """
-    users.append(user)
-    return user
+    user_dict = user.dict()
+    result = await db.users.insert_one(user_dict)
+    user_dict['id'] = str(result.inserted_id)
+    return user_dict
 
-@app.get(
-    "/users/{user_id}",
-    response_model=User,
-    tags=["users"],
-    summary="Get user by ID",
-    responses={
-        200: {"description": "Success"},
-        401: {"description": "Not authenticated"},
-        404: {"description": "User not found"}
-    }
-)
-async def get_user(user_id: int, current_user: dict = Depends(get_current_user)):
+@app.get("/users", response_model=List[User], tags=["users"])
+async def get_users(current_user: dict = Depends(get_current_user)):
     """
-    Get user information by user ID.
+    Get all users.
     Requires authentication.
     """
-    for user in users:
-        if user.id == user_id:
-            return user
-    raise HTTPException(status_code=404, detail="User not found")
-
+    try:
+        users = await db.users.find().to_list(length=None)
+        for user in users:
+            user['id'] = str(user['_id'])
+            del user['_id']
+        return users
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
 @app.post("/menu_items", response_model=MenuItem)
 async def create_menu_item(menu_item: MenuItem, current_user: dict = Depends(get_current_user)):
-    menu_items.append(menu_item)
-    return menu_item
+    """
+    Create a new menu item.
+    Requires authentication.
+    """
+    menu_dict = menu_item.dict()
+    result = await db.menu_items.insert_one(menu_dict)
+    menu_dict['id'] = str(result.inserted_id)
+    return menu_dict
 
 @app.get("/menu_items/{menu_item_id}", response_model=MenuItem)
-async def get_menu_item(menu_item_id: int, current_user: dict = Depends(get_current_user)):
-    for item in menu_items:
-        if item.id == menu_item_id:
-            return item
+async def get_menu_item(menu_item_id: str, current_user: dict = Depends(get_current_user)):
+    """
+    Get menu item by ID.
+    Requires authentication.
+    """
+    item = await db.menu_items.find_one({"_id": menu_item_id})
+    if item:
+        item['id'] = str(item['_id'])
+        del item['_id']
+        return item
     raise HTTPException(status_code=404, detail="Menu item not found")
 
-@app.post("/diet_plans", response_model=DietPlan)
+@app.post("/diet-plans", response_model=DietPlan)
 async def create_diet_plan(diet_plan: DietPlan, current_user: dict = Depends(get_current_user)):
+    diet_plan_dict = diet_plan.dict()
     recommendation = generate_diet_recommendation(diet_plan)
-    diet_plan.recommended_by_ai = True
-    diet_plans.append(diet_plan)
-    return diet_plan
+    diet_plan_dict['recommended_by_ai'] = True
+    result = await db.diet_plans.insert_one(diet_plan_dict)
+    diet_plan_dict['id'] = str(result.inserted_id)
+    return diet_plan_dict
+
 
 
 def generate_diet_recommendation(diet_plan: DietPlan):
@@ -401,3 +414,28 @@ def generate_diet_recommendation(diet_plan: DietPlan):
         #temperature=0.5,
     #)
     #return response.choices[0].text
+
+# User operations
+# Consultation operations
+@app.post("/consultations/", response_model=Consultation)
+async def create_consultation(consultation: Consultation):
+    consultation_dict = consultation.dict()
+    result = await db.consultations.insert_one(consultation_dict)
+    consultation_dict['id'] = str(result.inserted_id)
+    return consultation_dict
+
+# Diet Plan operations
+@app.post("/diet-plans/", response_model=DietPlan)
+async def create_diet_plan(diet_plan: DietPlan):
+    diet_plan_dict = diet_plan.dict()
+    result = await db.diet_plans.insert_one(diet_plan_dict)
+    diet_plan_dict['id'] = str(result.inserted_id)
+    return diet_plan_dict
+
+# Order operations
+@app.post("/orders/", response_model=Order)
+async def create_order(order: Order):
+    order_dict = order.dict()
+    result = await db.orders.insert_one(order_dict)
+    order_dict['id'] = str(result.inserted_id)
+    return order_dict
