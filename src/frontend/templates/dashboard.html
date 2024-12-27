@@ -6,8 +6,6 @@
     <title>Dashboard - Health Based Dietary Catering</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
-    <!-- Font Awesome for WhatsApp icon -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -30,45 +28,59 @@
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Health Profile -->
+            <!-- Profile Section -->
             <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold mb-4">Your Health Profile</h2>
-                <div class="space-y-4">
-                    <div class="p-4 bg-gray-50 rounded">
-                        <p class="text-sm font-medium text-gray-500">Email</p>
-                        <p class="text-gray-900">{{ user.get('email', 'No email provided') }}</p>
+                <h2 class="text-xl font-semibold mb-4">Your Profile</h2>
+                <form id="profileForm" class="space-y-4">
+                    <div>
+                        <label class="block text-gray-700">Phone Number</label>
+                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded">
                     </div>
-                    <!-- Add more profile information as needed -->
-                </div>
+                    
+                    <div>
+                        <label class="block text-gray-700">Age</label>
+                        <input type="number" name="age" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700">Weight (kg)</label>
+                        <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700">Height (cm)</label>
+                        <input type="number" name="height" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700">Medical Conditions</label>
+                        <input type="text" name="medical_conditions" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700">Allergies</label>
+                        <input type="text" name="allergies" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    
+                    <div>
+                        <label class="block text-gray-700">Dietary Preferences</label>
+                        <input type="text" name="dietary_preferences" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded">
+                    </div>
+                    
+                    <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition">
+                        Update Profile
+                    </button>
+                </form>
             </div>
 
-            <!-- Diet Plans -->
+            <!-- Diet Plans Section -->
             <div class="bg-white p-6 rounded-lg shadow">
                 <h2 class="text-xl font-semibold mb-4">Your Diet Plans</h2>
                 <div class="space-y-4">
                     <p class="text-gray-600">No active diet plans yet.</p>
-                    <button class="bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition">
+                    <a href="#" class="block text-center bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition">
                         Create New Diet Plan
-                    </button>
-                </div>
-            </div>
-        </div>
-
-        <!-- Health Metrics -->
-        <div class="mt-6 bg-white p-6 rounded-lg shadow">
-            <h2 class="text-xl font-semibold mb-4">Health Metrics</h2>
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div class="p-4 bg-gray-50 rounded">
-                    <h3 class="font-medium text-gray-700">Calories Today</h3>
-                    <p class="text-2xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded">
-                    <h3 class="font-medium text-gray-700">Active Diet Days</h3>
-                    <p class="text-2xl font-bold text-blue-600">0</p>
-                </div>
-                <div class="p-4 bg-gray-50 rounded">
-                    <h3 class="font-medium text-gray-700">Goals Met</h3>
-                    <p class="text-2xl font-bold text-blue-600">0</p>
+                    </a>
                 </div>
             </div>
         </div>
@@ -108,5 +120,29 @@
             tooltip.classList.add('hidden');
         });
     </script>
+
+<script>
+    document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const formData = new FormData(e.target);
+        
+        try {
+            const response = await fetch('/update-profile', {
+                method: 'POST',
+                body: formData
+            });
+            
+            if (response.ok) {
+                alert('Profile updated successfully!');
+            } else {
+                alert('Failed to update profile. Please try again.');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('An error occurred. Please try again.');
+        }
+    });
+</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </body>
 </html>
