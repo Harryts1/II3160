@@ -35,5 +35,10 @@
   "env": {
     "PYTHONPATH": ".",
     "APP_MODULE": "main:app"
+  },
+  "functions": {
+    "src/main.py": {
+      "maxDuration": 60
+    }
   }
 }
