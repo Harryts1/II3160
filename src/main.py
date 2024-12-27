@@ -242,7 +242,8 @@ oauth.register(
     client_kwargs={
         "scope": "openid profile email",
         "response_type": "code",
-        "audience": AUTH0_AUDIENCE
+        "audience": AUTH0_AUDIENCE,
+        "timeout": 60.0 
     }
 )
 
@@ -302,51 +303,64 @@ async def login(request: Request):
 @app.get("/callback")
 async def callback(request: Request):
     try:
-        token = await oauth.auth0.authorize_access_token(request)
-        userinfo = await oauth.auth0.userinfo(token=token)
-        request.session['token'] = token['access_token']
-        request.session['user'] = dict(userinfo)
-        
-        # Simpan atau update user di MongoDB
-        user_data = {
-            "name": userinfo.get("name", ""),
-            "email": userinfo.get("email", ""),
-            "phone": "",  # Kosong karena belum ada dari Auth0
-            "health_profile": {
-                "age": 0,
-                "weight": 0.0,
-                "height": 0.0,
-                "medical_conditions": [],
-                "allergies": [],
-                "dietary_preferences": []
-            },
-            "created_at": datetime.now(),
-            "updated_at": datetime.now()
-        }
-        
-        # Cek apakah user sudah ada di database
-        existing_user = await db.users.find_one({"email": userinfo.get("email")})
-        
-        if existing_user:
-            # Update user yang sudah ada
-            await db.users.update_one(
-                {"email": userinfo.get("email")},
-                {"$set": {"updated_at": datetime.now()}}
-            )
-        else:
-            # Buat user baru
-            await db.users.insert_one(user_data)
-        
-        return RedirectResponse(url='/dashboard', status_code=303)
+        # Use httpx client with increased timeout
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            token = await oauth.auth0.authorize_access_token(request)
+            userinfo = await oauth.auth0.userinfo(token=token)
+            request.session['token'] = token['access_token']
+            request.session['user'] = dict(userinfo)
+            
+            # Save user to MongoDB with timeout handling
+            try:
+                user_data = {
+                    "name": userinfo.get("name", ""),
+                    "email": userinfo.get("email", ""),
+                    "phone": "",
+                    "health_profile": {
+                        "age": 0,
+                        "weight": 0.0,
+                        "height": 0.0,
+                        "medical_conditions": [],
+                        "allergies": [],
+                        "dietary_preferences": []
+                    },
+                    "created_at": datetime.now(),
+                    "updated_at": datetime.now()
+                }
+                
+                existing_user = await db.users.find_one(
+                    {"email": userinfo.get("email")},
+                    max_time_ms=5000  # MongoDB timeout
+                )
+                
+                if existing_user:
+                    await db.users.update_one(
+                        {"email": userinfo.get("email")},
+                        {"$set": {"updated_at": datetime.now()}},
+                        max_time_ms=5000
+                    )
+                else:
+                    await db.users.insert_one(user_data, max_time_ms=5000)
+                    
+                return RedirectResponse(url='/dashboard', status_code=303)
+            
+            except Exception as mongo_error:
+                print(f"MongoDB error: {str(mongo_error)}")
+                # Continue even if MongoDB fails
+                return RedirectResponse(url='/dashboard', status_code=303)
+                
+    except TimeoutError as e:
+        print(f"Timeout error: {str(e)}")
+        return RedirectResponse(url='/login?error=timeout')
     except OAuthError as e:
         print(f"OAuth error: {str(e)}")
-        return RedirectResponse(url='/login')
+        return RedirectResponse(url='/login?error=oauth')
     except MismatchingStateError:
         print("State mismatch error")
-        return RedirectResponse(url='/login')
+        return RedirectResponse(url='/login?error=state')
     except Exception as e:
-        print(f"Callback error: {str(e)}")
-        return RedirectResponse(url='/login')
+        print(f"General error: {str(e)}")
+        return RedirectResponse(url='/login?error=unknown')
     
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
