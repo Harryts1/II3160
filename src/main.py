@@ -16,6 +16,8 @@ from jwt.algorithms import RSAAlgorithm
 import json
 from fastapi.openapi.utils import get_openapi
 from fastapi.security import OAuth2AuthorizationCodeBearer
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
 
 # Configuration
 config = Config('.env')
@@ -127,6 +129,13 @@ app = FastAPI(
         "scopes": "openid profile email"
     }
 )
+
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
+templates = Jinja2Templates(directory="frontend/templates")
+
+@app.get("/", response_class=HTMLResponse)
+async def serve_home(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
 
 async def get_current_user(request: Request):
     token = request.session.get('token')

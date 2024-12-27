@@ -9,3 +9,5 @@ starlette
 openai
 itsdangerous
 PyJWT
+jinja2
+aiofiles
