@@ -307,7 +307,36 @@ async def callback(request: Request):
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
         
-        # Use relative path instead of absolute URL
+        # Simpan atau update user di MongoDB
+        user_data = {
+            "name": userinfo.get("name", ""),
+            "email": userinfo.get("email", ""),
+            "phone": "",  # Kosong karena belum ada dari Auth0
+            "health_profile": {
+                "age": 0,
+                "weight": 0.0,
+                "height": 0.0,
+                "medical_conditions": [],
+                "allergies": [],
+                "dietary_preferences": []
+            },
+            "created_at": datetime.now(),
+            "updated_at": datetime.now()
+        }
+        
+        # Cek apakah user sudah ada di database
+        existing_user = await db.users.find_one({"email": userinfo.get("email")})
+        
+        if existing_user:
+            # Update user yang sudah ada
+            await db.users.update_one(
+                {"email": userinfo.get("email")},
+                {"$set": {"updated_at": datetime.now()}}
+            )
+        else:
+            # Buat user baru
+            await db.users.insert_one(user_data)
+        
         return RedirectResponse(url='/dashboard', status_code=303)
     except OAuthError as e:
         print(f"OAuth error: {str(e)}")
