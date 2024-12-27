@@ -308,35 +308,43 @@ async def callback(request: Request):
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
         
-        # Cek user di database
-        existing_user = await db.users.find_one({"email": userinfo.get("email")})
-        
-        if existing_user:
-            # User lama, langsung ke dashboard
-            return RedirectResponse(url='/dashboard', status_code=303)
-        else:
-            # User baru, buat data default
-            user_data = {
-                "name": userinfo.get("name", ""),
-                "email": userinfo.get("email", ""),
-                "phone": "",
-                "health_profile": {
-                    "age": 0,
-                    "weight": 0.0,
-                    "height": 0.0,
-                    "medical_conditions": [],
-                    "allergies": [],
-                    "dietary_preferences": []
-                },
-                "created_at": datetime.now(),
-                "updated_at": datetime.now()
-            }
-            await db.users.insert_one(user_data)
-            # Redirect ke halaman lengkapi profil
-            return RedirectResponse(url='/complete-profile', status_code=303)
+        # Redirect berhasil ke dashboard
+        return RedirectResponse(url='/dashboard', status_code=303)
     except Exception as e:
         print(f"Callback error: {str(e)}")
         return RedirectResponse(url='/login')
+    
+@app.post("/update-profile")
+async def update_profile(request: Request):
+    user = request.session.get('user')
+    if not user:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+        
+    try:
+        form_data = await request.form()
+        user_data = {
+            "name": user.get("name"),
+            "email": user.get("email"),
+            "phone": form_data.get("phone"),
+            "health_profile": {
+                "age": int(form_data.get("age")),
+                "weight": float(form_data.get("weight")),
+                "height": float(form_data.get("height")),
+                "medical_conditions": form_data.get("medical_conditions").split(","),
+                "allergies": form_data.get("allergies").split(","),
+                "dietary_preferences": form_data.get("dietary_preferences").split(",")
+            }
+        }
+        
+        await db.users.update_one(
+            {"email": user.get("email")},
+            {"$set": user_data},
+            upsert=True  # Create if not exists
+        )
+        
+        return {"message": "Profile updated successfully"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
     
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
