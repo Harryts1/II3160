@@ -133,32 +133,28 @@
             const modalFormContainer = document.getElementById('modalFormContainer');
 
             profileForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const formData = new FormData(e.target);
-                
-                try {
-                    const response = await fetch('/update-profile', {
-                        method: 'POST',
-                        headers: {
-                            'Accept': 'application/json',
-                        },
-                        credentials: 'include',
-                        body: formData
-                    });
+            e.preventDefault();
+            const formData = new FormData(e.target);
+    
+            try {
+                const response = await fetch('/update-profile', {
+                    method: 'POST',
+                    body: formData
+                });
 
-                    if (response.ok) {
-                        alert('Profile updated successfully!');
-                        window.location.reload();
-                    } else {
-                        const error = await response.json();
-                        alert(`Failed to update profile: ${error.detail}`);
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    alert('An error occurred while updating profile');
+                const data = await response.json();
+        
+                if (response.ok) {
+                    alert('Profile updated successfully!');
+                    window.location.reload();
+                } else {
+                    alert(`Failed to update profile: ${data.detail || 'Unknown error'}`);
                 }
-            });
-
+            } catch (error) {
+                console.error('Error:', error);
+                alert('An error occurred while updating profile. Please try again.');
+            }
+        });
             // Modal handling
             editProfileBtn.addEventListener('click', (e) => {
                 e.preventDefault();
