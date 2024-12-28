@@ -22,21 +22,39 @@ from fastapi.responses import HTMLResponse
 from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorClient
 from datetime import datetime
+import logging
 
-# MongoDB connection
-config = Config('.env')
-MONGO_URL = config('MONGO_URL', cast=str)
-client = AsyncIOMotorClient(MONGO_URL)
-db = client.dietary_catering
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
 # Configuration
 config = Config('.env')
+MONGO_URL = config('MONGO_URL', cast=str)
 AUTH0_CLIENT_ID = config('AUTH0_CLIENT_ID', cast=str)
 AUTH0_CLIENT_SECRET = config('AUTH0_CLIENT_SECRET', cast=str)
 AUTH0_DOMAIN = config('AUTH0_DOMAIN', cast=str)
 AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
 AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
 SECRET_KEY = config('SECRET_KEY', cast=str)
+
+# MongoDB Connection Function
+async def connect_to_mongo():
+    try:
+        # Create client
+        client = AsyncIOMotorClient(MONGO_URL)
+        
+        # Test connection
+        await client.admin.command('ping')
+        
+        # Get database
+        db = client.dietary_catering
+        
+        logger.info("Successfully connected to MongoDB!")
+        return db
+    except Exception as e:
+        logger.error(f"Failed to connect to MongoDB: {str(e)}")
+        raise e
 
 
 # Models
@@ -140,7 +158,15 @@ app = FastAPI(
         "scopes": "openid profile email"
     }
 )
-
+@app.on_event("startup")
+async def startup_db_client():
+    try:
+        app.mongodb = await connect_to_mongo()
+        logger.info("MongoDB connection established at startup")
+    except Exception as e:
+        logger.error(f"Failed to establish MongoDB connection at startup: {str(e)}")
+        raise e
+    
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
@@ -322,7 +348,7 @@ async def update_profile(request: Request):
             raise HTTPException(status_code=401, detail="Not authenticated")
         
         form = await request.form()
-        print("Received form data:", form)  # Debug log
+        logger.info(f"Received form data: {dict(form)}")
         
         user_data = {
             "name": user.get("name", ""),
@@ -339,18 +365,21 @@ async def update_profile(request: Request):
             "updated_at": datetime.now()
         }
         
-        print("Processed user data:", user_data)  # Debug log
+        logger.info(f"Attempting to update/insert user data for email: {user.get('email')}")
         
+        # Use update_one with upsert
         result = await db.users.update_one(
             {"email": user.get("email")},
             {"$set": user_data},
             upsert=True
         )
         
+        logger.info(f"Database operation result: {result.modified_count} documents modified, Upserted ID: {result.upserted_id}")
+        
         return {"status": "success", "message": "Profile updated successfully"}
     except Exception as e:
-        print(f"Error updating profile: {str(e)}")  # Debug log
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error updating profile: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
     
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
