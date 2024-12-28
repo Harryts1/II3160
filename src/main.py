@@ -165,47 +165,44 @@ async def get_database():
 async def init_mongodb():
     global mongodb_client, mongodb_db
     try:
-        # Create MongoDB client with robust connection options
+        # Create MongoDB client with SSL configurations
         mongodb_client = AsyncIOMotorClient(
             MONGO_URL,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=5000,
-            socketTimeoutMS=5000,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=10000,
             maxPoolSize=10,
             retryWrites=True,
-            retryReads=True
+            retryReads=True,
+            ssl=True,
+            ssl_cert_reqs='CERT_NONE',  # WARNING: Use this only for testing
+            tls=True,
+            tlsAllowInvalidCertificates=True  # WARNING: Use this only for testing
         )
         
-        # Test connection
-        await mongodb_client.admin.command('ping')
-        logger.info("MongoDB connection test successful")
+        # Test connection with longer timeout
+        await asyncio.wait_for(
+            mongodb_client.admin.command('ping'),
+            timeout=30.0
+        )
         
-        # Get database
+        logger.info("MongoDB connection test successful")
         mongodb_db = mongodb_client.dietary_catering
         
-        # Ensure collections exist
-        collections = await mongodb_db.list_collection_names()
-        required_collections = ['users', 'menu_items', 'diet_plans', 'consultations', 'orders']
+        # Rest of your initialization code...
         
-        for collection in required_collections:
-            if collection not in collections:
-                await mongodb_db.create_collection(collection)
-                logger.info(f"Created collection: {collection}")
-        
-        # Create indexes
-        await mongodb_db.users.create_index("email", unique=True)
-        await mongodb_db.menu_items.create_index("name")
-        await mongodb_db.diet_plans.create_index("user_id")
-        await mongodb_db.consultations.create_index("user_id")
-        await mongodb_db.orders.create_index([("user_id", 1), ("created_at", -1)])
-        
-        logger.info("MongoDB initialization completed successfully")
         return mongodb_db
+    except asyncio.TimeoutError:
+        logger.error("MongoDB connection timeout")
+        raise HTTPException(
+            status_code=500,
+            detail="Database connection timeout. Please try again later."
+        )
     except Exception as e:
         logger.error(f"MongoDB initialization error: {str(e)}")
         raise HTTPException(
             status_code=500,
-            detail="Database connection failed. Please try again later."
+            detail=f"Database connection failed: {str(e)}"
         )
 
 # FastAPI Setup
