@@ -39,8 +39,8 @@ AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
 SECRET_KEY = config('SECRET_KEY', cast=str)
 
 # Global MongoDB connection
-mongodb_db = mongodb_client.get_database('dietary_catering')
-logger.info(f"Connected to database: {mongodb_db.name}")
+mongodb_client = None
+mongodb_db = None
 
 # Models
 class User(BaseModel):
@@ -172,9 +172,26 @@ app = FastAPI(
 
 @app.on_event("startup")
 async def startup_db_client():
+    global mongodb_client, mongodb_db
     try:
-        await init_mongodb()
+        # Create client with more robust connection options
+        mongodb_client = AsyncIOMotorClient(
+            MONGO_URL,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=10000,
+            maxPoolSize=10,
+            retryWrites=True,
+            retryReads=True
+        )
+        
+        # Test connection
+        await mongodb_client.admin.command('ping')
+        
+        # Get database
+        mongodb_db = mongodb_client.dietary_catering
         logger.info("MongoDB connection established at startup")
+        logger.info(f"Connected to database: {mongodb_db.name}")
     except Exception as e:
         logger.error(f"Failed to initialize MongoDB: {str(e)}")
         raise e
