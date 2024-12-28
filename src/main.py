@@ -302,21 +302,25 @@ async def home(request: Request):
 @app.get("/login")
 async def login(request: Request):
     try:
-        redirect_uri = AUTH0_CALLBACK_URL
+        # Specify the exact redirect URI
+        redirect_uri = f"https://18222081-ii3160-fastapiproject.vercel.app/callback"
         return await oauth.auth0.authorize_redirect(
             request,
             redirect_uri,
-            audience=AUTH0_AUDIENCE
+            audience=AUTH0_AUDIENCE,
+            prompt="login"  # Force login prompt
         )
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
-        raise HTTPException(status_code=500, detail="Login failed")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/callback")
 async def callback(request: Request):
     try:
         token = await oauth.auth0.authorize_access_token(request)
         userinfo = await oauth.auth0.userinfo(token=token)
+        
+        # Store user info in session
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
         
@@ -335,10 +339,19 @@ async def callback(request: Request):
             upsert=True
         )
         
-        return RedirectResponse(url='/dashboard')
+        # Redirect to dashboard with absolute URL
+        return RedirectResponse(
+            url="https://18222081-ii3160-fastapiproject.vercel.app/dashboard",
+            status_code=303  # Use 303 for POST/REDIRECT/GET pattern
+        )
+        
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
-        return RedirectResponse(url='/login')
+        # Redirect to login with absolute URL on error
+        return RedirectResponse(
+            url="https://18222081-ii3160-fastapiproject.vercel.app/login",
+            status_code=303
+        )
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
