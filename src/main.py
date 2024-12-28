@@ -42,25 +42,32 @@ SECRET_KEY = config('SECRET_KEY', cast=str)
 # MongoDB Connection Function
 async def connect_to_mongo():
     try:
-        # Create client with shorter timeout
+        # Create client with more robust connection options
         client = AsyncIOMotorClient(
             MONGO_URL,
-            serverSelectionTimeoutMS=3000,  # 3 seconds timeout
-            connectTimeoutMS=3000,
-            socketTimeoutMS=3000
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            socketTimeoutMS=5000,
+            maxPoolSize=1,
+            retryWrites=True,
+            retryReads=True
         )
         
-        # Test connection with timeout
-        await asyncio.wait_for(client.admin.command('ping'), timeout=3.0)
+        logger.info("Attempting to connect to MongoDB...")
         
+        # Test connection
+        await client.admin.command('ping')
+        
+        # Get database
         db = client.dietary_catering
+        logger.info("Successfully connected to MongoDB!")
         return db
-    except asyncio.TimeoutError:
-        logger.error("MongoDB connection timeout")
-        raise HTTPException(status_code=503, detail="Database connection timeout")
     except Exception as e:
         logger.error(f"MongoDB connection error: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=503,
+            detail=f"Database connection failed: {str(e)}"
+        )
 
 
 # Models
@@ -349,87 +356,95 @@ async def callback(request: Request):
     
 @app.post("/update-profile")
 async def update_profile(request: Request):
-    try:
-        # Get user session
-        user = request.session.get('user')
-        if not user:
-            logger.error("User not authenticated")
-            raise HTTPException(status_code=401, detail="Not authenticated")
-        
-        # Get form data
-        form = await request.form()
-        logger.info(f"Received form data: {dict(form)}")
-        
-        # Connect to MongoDB with timeout
-        try:
-            mongodb = await asyncio.wait_for(connect_to_mongo(), timeout=3.0)
-            logger.info("Successfully connected to MongoDB")
-        except asyncio.TimeoutError:
-            logger.error("Database connection timeout")
-            raise HTTPException(status_code=503, detail="Database connection timeout")
-        except Exception as e:
-            logger.error(f"Database connection error: {str(e)}")
-            raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
-        
-        # Prepare user data
-        try:
-            user_data = {
-                "name": user.get("name", ""),
-                "email": user.get("email", ""),
-                "phone": form.get("phone", ""),
-                "health_profile": {
-                    "age": int(form.get("age", 0)),
-                    "weight": float(form.get("weight", 0)),
-                    "height": float(form.get("height", 0)),
-                    "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
-                    "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
-                    "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
-                },
-                "updated_at": datetime.now()
-            }
-            logger.info(f"Prepared user data: {user_data}")
-        except ValueError as e:
-            logger.error(f"Error parsing form data: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Invalid form data: {str(e)}")
-        
-        # Update database
-        try:
-            # Set timeout for database operation
-            async with asyncio.timeout(5.0):  # 5 seconds timeout for database operation
-                result = await mongodb.users.update_one(
-                    {"email": user.get("email")},
-                    {"$set": user_data},
-                    upsert=True
-                )
-                
-            logger.info(f"Database operation result: {result.modified_count} documents modified")
-            if result.upserted_id:
-                logger.info(f"New document created with ID: {result.upserted_id}")
-                
-            return {
-                "status": "success",
-                "message": "Profile updated successfully",
-                "modified_count": result.modified_count,
-                "upserted_id": str(result.upserted_id) if result.upserted_id else None
-            }
-            
-        except asyncio.TimeoutError:
-            logger.error("Database operation timeout")
-            raise HTTPException(status_code=503, detail="Database operation timeout")
-        except Exception as db_error:
-            logger.error(f"Database operation failed: {str(db_error)}")
-            raise HTTPException(status_code=500, detail=f"Database operation failed: {str(db_error)}")
-            
-    except HTTPException as http_ex:
-        # Re-raise HTTP exceptions
-        raise http_ex
-    except Exception as e:
-        # Log unexpected errors
-        logger.error(f"Unexpected error in update_profile: {str(e)}")
-        logger.error(f"Error type: {type(e)}")
-        logger.error(f"Error args: {e.args}")
-        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
-    
+   try:
+       # Get user session
+       user = request.session.get('user')
+       if not user:
+           logger.error("User not authenticated")
+           raise HTTPException(status_code=401, detail="Not authenticated")
+       
+       # Get form data
+       form = await request.form()
+       logger.info(f"Received form data: {dict(form)}")
+       
+       # Prepare user data
+       try:
+           user_data = {
+               "name": user.get("name", ""),
+               "email": user.get("email", ""),
+               "phone": form.get("phone", ""),
+               "health_profile": {
+                   "age": int(form.get("age", 0)),
+                   "weight": float(form.get("weight", 0)),
+                   "height": float(form.get("height", 0)),
+                   "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
+                   "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
+                   "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
+               },
+               "updated_at": datetime.now()
+           }
+           logger.info(f"Prepared user data: {user_data}")
+       except ValueError as e:
+           logger.error(f"Error parsing form data: {str(e)}")
+           raise HTTPException(status_code=400, detail=f"Invalid form data: {str(e)}")
+
+       # Connect to MongoDB with timeout
+       try:
+           # Create client with more robust connection options
+           client = AsyncIOMotorClient(
+               MONGO_URL,
+               serverSelectionTimeoutMS=5000,
+               connectTimeoutMS=5000,
+               socketTimeoutMS=5000,
+               maxPoolSize=1,
+               retryWrites=True,
+               retryReads=True
+           )
+           
+           logger.info("Attempting to connect to MongoDB...")
+           
+           # Test connection with 5 second timeout
+           await asyncio.wait_for(client.admin.command('ping'), timeout=5.0)
+           
+           # Get database
+           db = client.dietary_catering
+           logger.info("Successfully connected to MongoDB!")
+           
+           # Update database
+           result = await db.users.update_one(
+               {"email": user.get("email")},
+               {"$set": user_data},
+               upsert=True
+           )
+           
+           logger.info(f"Database operation result: {result.modified_count} documents modified")
+           if result.upserted_id:
+               logger.info(f"New document created with ID: {result.upserted_id}")
+           
+           return {
+               "status": "success", 
+               "message": "Profile updated successfully",
+               "modified_count": result.modified_count,
+               "upserted_id": str(result.upserted_id) if result.upserted_id else None
+           }
+
+       except asyncio.TimeoutError:
+           logger.error("Database connection timeout")
+           raise HTTPException(status_code=503, detail="Database connection timeout")
+       except Exception as db_error:
+           logger.error(f"Database operation failed: {str(db_error)}")
+           raise HTTPException(status_code=500, detail=f"Database operation failed: {str(db_error)}")
+           
+   except HTTPException as http_ex:
+       # Re-raise HTTP exceptions
+       raise http_ex
+   except Exception as e:
+       # Log unexpected errors
+       logger.error(f"Unexpected error in update_profile: {str(e)}")
+       logger.error(f"Error type: {type(e)}")
+       logger.error(f"Error args: {e.args}")
+       raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+   
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     user = request.session.get('user')
