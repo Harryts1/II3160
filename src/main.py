@@ -174,7 +174,11 @@ app = FastAPI(
 async def startup_db_client():
     global mongodb_client, mongodb_db
     try:
-        # Create client with more robust connection options
+        # Logging awal
+        logger.info("Starting MongoDB connection initialization...")
+        logger.info(f"Connecting to MongoDB at: {MONGO_URL[:20]}...")
+        
+        # Create MongoDB client with robust options
         mongodb_client = AsyncIOMotorClient(
             MONGO_URL,
             serverSelectionTimeoutMS=10000,
@@ -186,15 +190,63 @@ async def startup_db_client():
         )
         
         # Test connection
+        logger.info("Testing MongoDB connection...")
         await mongodb_client.admin.command('ping')
         
         # Get database
-        mongodb_db = mongodb_client.dietary_catering
-        logger.info("MongoDB connection established at startup")
+        mongodb_db = mongodb_client.get_database('dietary_catering')
         logger.info(f"Connected to database: {mongodb_db.name}")
+        
+        # List and create collections if needed
+        collections = await mongodb_db.list_collection_names()
+        logger.info(f"Existing collections: {collections}")
+        
+        required_collections = [
+            'users', 
+            'menu_items', 
+            'diet_plans', 
+            'consultations', 
+            'orders'
+        ]
+        
+        # Create missing collections
+        for collection in required_collections:
+            if collection not in collections:
+                logger.info(f"Creating collection: {collection}")
+                await mongodb_db.create_collection(collection)
+        
+        # Create indexes
+        logger.info("Creating indexes...")
+        await mongodb_db.users.create_index("email", unique=True)
+        await mongodb_db.menu_items.create_index("name")
+        await mongodb_db.diet_plans.create_index("user_id")
+        await mongodb_db.consultations.create_index("user_id")
+        await mongodb_db.orders.create_index([("user_id", 1), ("created_at", -1)])
+        
+        # Verify final state
+        final_collections = await mongodb_db.list_collection_names()
+        logger.info(f"Final collections in database: {final_collections}")
+        
+        # Test write operation
+        test_result = await mongodb_db.command("ping")
+        logger.info(f"Database write test result: {test_result}")
+        
+        logger.info("MongoDB initialization completed successfully!")
+        
     except Exception as e:
         logger.error(f"Failed to initialize MongoDB: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error("MongoDB initialization failed!")
         raise e
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    try:
+        if mongodb_client:
+            mongodb_client.close()
+            logger.info("MongoDB connection closed successfully")
+    except Exception as e:
+        logger.error(f"Error closing MongoDB connection: {str(e)}")
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
@@ -327,6 +379,20 @@ async def update_profile(request: Request):
         form = await request.form()
         logger.info(f"Form data received: {dict(form)}")
         
+        # Tambahkan logging untuk cek koneksi database
+        if mongodb_db is None:
+            logger.error("mongodb_db is None!")
+            return {"status": "error", "message": "Database connection not available"}
+            
+        logger.info("Checking existing collections...")
+        collections = await mongodb_db.list_collection_names()
+        logger.info(f"Available collections: {collections}")
+        
+        # Create users collection if not exists
+        if 'users' not in collections:
+            logger.info("Creating users collection...")
+            await mongodb_db.create_collection('users')
+
         user_data = {
             "name": user.get("name", ""),
             "email": user.get("email", ""),
@@ -342,39 +408,32 @@ async def update_profile(request: Request):
             "updated_at": datetime.now()
         }
         
-        # Verifikasi koneksi database
-        if not mongodb_db:
-            logger.error("MongoDB connection not initialized")
-            raise HTTPException(status_code=500, detail="Database connection not initialized")
+        logger.info(f"Attempting to insert/update user with email: {user.get('email')}")
+        logger.info(f"User data: {user_data}")
+
+        try:
+            result = await mongodb_db.users.update_one(
+                {"email": user.get("email")},
+                {"$set": user_data},
+                upsert=True
+            )
             
-        logger.info(f"Current database: {mongodb_db.name}")
-        logger.info(f"Available collections: {await mongodb_db.list_collection_names()}")
-        
-        # Eksplisit gunakan collection users
-        users_collection = mongodb_db.get_collection('users')
-        
-        # Tambahkan logging sebelum operasi
-        logger.info(f"Attempting to update/insert document with email: {user.get('email')}")
-        logger.info(f"User data to be inserted: {user_data}")
-        
-        result = await users_collection.update_one(
-            {"email": user.get("email")},
-            {"$set": user_data},
-            upsert=True
-        )
-        
-        # Verifikasi hasil operasi
-        logger.info(f"Update result - Modified: {result.modified_count}, Upserted ID: {result.upserted_id}")
-        
-        # Verifikasi dokumen tersimpan
-        saved_doc = await users_collection.find_one({"email": user.get("email")})
-        logger.info(f"Saved document: {saved_doc}")
-        
-        return {"status": "success", "message": "Profile updated successfully"}
-        
+            logger.info(f"Update result: Modified={result.modified_count}, "
+                       f"Matched={result.matched_count}, "
+                       f"Upserted_id={result.upserted_id}")
+                       
+            # Verify if document exists
+            doc = await mongodb_db.users.find_one({"email": user.get("email")})
+            logger.info(f"Verification - Found document: {doc}")
+            
+            return {"status": "success", "message": "Profile updated successfully"}
+            
+        except Exception as db_error:
+            logger.error(f"Database operation error: {str(db_error)}")
+            return {"status": "error", "message": f"Database operation failed: {str(db_error)}"}
+            
     except Exception as e:
-        logger.error(f"Error in update_profile: {str(e)}")
-        logger.error(f"Error type: {type(e)}")
+        logger.error(f"General error in update_profile: {str(e)}")
         return {"status": "error", "message": str(e)}
 
 @app.get("/dashboard", response_class=HTMLResponse)
