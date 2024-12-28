@@ -21,7 +21,6 @@ from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse
 from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorClient
-from datetime import datetime
 import logging
 import asyncio
 
@@ -39,36 +38,9 @@ AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
 AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
 SECRET_KEY = config('SECRET_KEY', cast=str)
 
-# MongoDB Connection Function
-async def connect_to_mongo():
-    try:
-        # Create client with more robust connection options
-        client = AsyncIOMotorClient(
-            MONGO_URL,
-            serverSelectionTimeoutMS=5000,
-            connectTimeoutMS=5000,
-            socketTimeoutMS=5000,
-            maxPoolSize=1,
-            retryWrites=True,
-            retryReads=True
-        )
-        
-        logger.info("Attempting to connect to MongoDB...")
-        
-        # Test connection
-        await client.admin.command('ping')
-        
-        # Get database
-        db = client.dietary_catering
-        logger.info("Successfully connected to MongoDB!")
-        return db
-    except Exception as e:
-        logger.error(f"MongoDB connection error: {str(e)}")
-        raise HTTPException(
-            status_code=503,
-            detail=f"Database connection failed: {str(e)}"
-        )
-
+# Global MongoDB connection
+mongodb_client = None
+mongodb_db = None
 
 # Models
 class User(BaseModel):
@@ -156,6 +128,32 @@ class MenuItem(BaseModel):
             }
         }
 
+# MongoDB Connection Function
+async def init_mongodb():
+    global mongodb_client, mongodb_db
+    try:
+        # Create client with more robust connection options
+        mongodb_client = AsyncIOMotorClient(
+            MONGO_URL,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=10000,
+            maxPoolSize=10,
+            retryWrites=True,
+            retryReads=True
+        )
+        
+        # Test connection
+        await mongodb_client.admin.command('ping')
+        
+        # Get database
+        mongodb_db = mongodb_client.dietary_catering
+        logger.info("Successfully initialized MongoDB connection")
+        return mongodb_db
+    except Exception as e:
+        logger.error(f"MongoDB initialization error: {str(e)}")
+        raise e
+
 # FastAPI Setup
 app = FastAPI(
     title="Health Based Dietary Catering API",
@@ -171,82 +169,26 @@ app = FastAPI(
         "scopes": "openid profile email"
     }
 )
+
 @app.on_event("startup")
 async def startup_db_client():
     try:
-        logger.info("Starting MongoDB connection...")
-        app.mongodb = await connect_to_mongo()
+        await init_mongodb()
         logger.info("MongoDB connection established at startup")
     except Exception as e:
-        logger.error(f"Failed to establish MongoDB connection at startup: {str(e)}")
+        logger.error(f"Failed to initialize MongoDB: {str(e)}")
         raise e
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    if mongodb_client:
+        mongodb_client.close()
+        logger.info("MongoDB connection closed")
 
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
-async def get_current_user(request: Request):
-    token = request.session.get('token')
-    if not token:
-        raise HTTPException(
-            status_code=401,
-            detail="Not authenticated"
-        )
-    
-    try:
-        payload = await verify_token(token)
-        return payload
-    except Exception as e:
-        raise HTTPException(
-            status_code=401,
-            detail=str(e)
-        )
-
-def custom_openapi():
-    if app.openapi_schema:
-        return app.openapi_schema
-    
-    openapi_schema = get_openapi(
-        title=app.title,
-        version=app.version,
-        description=app.description,
-        routes=app.routes,
-    )
-    
-    # Add security schemes
-    openapi_schema["components"] = {
-        "securitySchemes": {
-            "OAuth2": {
-                "type": "oauth2",
-                "flows": {
-                    "authorizationCode": {
-                        "authorizationUrl": f"https://{AUTH0_DOMAIN}/authorize",
-                        "tokenUrl": f"https://{AUTH0_DOMAIN}/oauth/token",
-                        "scopes": {
-                            "openid": "OpenID connect",
-                            "profile": "Profile",
-                            "email": "Email"
-                        }
-                    }
-                }
-            }
-        }
-    }
-    
-    # Add global security
-    openapi_schema["security"] = [
-        {
-            "OAuth2": [
-                "openid",
-                "profile",
-                "email"
-            ]
-        }
-    ]
-    
-    app.openapi_schema = openapi_schema
-    return app.openapi_schema
-
-# Add CORS middleware if needed
+# Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 
 app.add_middleware(
@@ -269,6 +211,7 @@ app.add_middleware(
     same_site="none",
     https_only=True
 )
+
 # OAuth Setup with Auth0
 oauth = OAuth()
 oauth.register(
@@ -290,12 +233,10 @@ oauth.register(
 # Authentication utilities
 async def verify_token(token: str):
     try:
-        # Fetch JWKS
         async with httpx.AsyncClient() as client:
             jwks_response = await client.get(f'https://{AUTH0_DOMAIN}/.well-known/jwks.json')
             jwks = jwks_response.json()
 
-        # Find the key that matches our token
         header = jwt.get_unverified_header(token)
         key = None
         for jwk in jwks['keys']:
@@ -306,7 +247,6 @@ async def verify_token(token: str):
         if not key:
             raise HTTPException(status_code=401, detail="Unable to find appropriate key")
 
-        # Verify token
         payload = jwt.decode(
             token,
             key=key,
@@ -320,6 +260,16 @@ async def verify_token(token: str):
     except Exception as e:
         raise HTTPException(status_code=401, detail=str(e))
 
+async def get_current_user(request: Request):
+    token = request.session.get('token')
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    try:
+        payload = await verify_token(token)
+        return payload
+    except Exception as e:
+        raise HTTPException(status_code=401, detail=str(e))
+
 # Routes
 @app.get("/", response_class=HTMLResponse)
 async def serve_home(request: Request):
@@ -327,9 +277,6 @@ async def serve_home(request: Request):
 
 @app.get("/login")
 async def login(request: Request):
-    """
-    Initiates the Auth0 login process.
-    """
     try:
         return await oauth.auth0.authorize_redirect(
             request,
@@ -337,7 +284,7 @@ async def login(request: Request):
             prompt="login"
         )
     except Exception as e:
-        print(f"Login error: {str(e)}")
+        logger.error(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/callback")
@@ -347,117 +294,112 @@ async def callback(request: Request):
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        
-        # Redirect berhasil ke dashboard
         return RedirectResponse(url='/dashboard', status_code=303)
     except Exception as e:
-        print(f"Callback error: {str(e)}")
+        logger.error(f"Callback error: {str(e)}")
         return RedirectResponse(url='/login')
-    
+
 @app.post("/update-profile")
 async def update_profile(request: Request):
-   try:
-       # Get user session
-       user = request.session.get('user')
-       if not user:
-           logger.error("User not authenticated")
-           raise HTTPException(status_code=401, detail="Not authenticated")
-       
-       # Get form data
-       form = await request.form()
-       logger.info(f"Received form data: {dict(form)}")
-       
-       # Prepare user data
-       try:
-           user_data = {
-               "name": user.get("name", ""),
-               "email": user.get("email", ""),
-               "phone": form.get("phone", ""),
-               "health_profile": {
-                   "age": int(form.get("age", 0)),
-                   "weight": float(form.get("weight", 0)),
-                   "height": float(form.get("height", 0)),
-                   "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
-                   "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
-                   "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
-               },
-               "updated_at": datetime.now()
-           }
-           logger.info(f"Prepared user data: {user_data}")
-       except ValueError as e:
-           logger.error(f"Error parsing form data: {str(e)}")
-           raise HTTPException(status_code=400, detail=f"Invalid form data: {str(e)}")
+    try:
+        # Get user session
+        user = request.session.get('user')
+        if not user:
+            logger.error("User not authenticated")
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Get form data
+        form = await request.form()
+        logger.info(f"Received form data: {dict(form)}")
+        
+        # Prepare user data
+        try:
+            user_data = {
+                "name": user.get("name", ""),
+                "email": user.get("email", ""),
+                "phone": form.get("phone", ""),
+                "health_profile": {
+                    "age": int(form.get("age", 0)),
+                    "weight": float(form.get("weight", 0)),
+                    "height": float(form.get("height", 0)),
+                    "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
+                    "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
+                    "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
+                },
+                "updated_at": datetime.now()
+            }
+            logger.info(f"Prepared user data: {user_data}")
+        except ValueError as e:
+            logger.error(f"Error parsing form data: {str(e)}")
+            raise HTTPException(status_code=400, detail=f"Invalid form data: {str(e)}")
 
-       # Connect to MongoDB with timeout
-       try:
-           # Create client with more robust connection options
-           client = AsyncIOMotorClient(
-               MONGO_URL,
-               serverSelectionTimeoutMS=5000,
-               connectTimeoutMS=5000,
-               socketTimeoutMS=5000,
-               maxPoolSize=1,
-               retryWrites=True,
-               retryReads=True
-           )
-           
-           logger.info("Attempting to connect to MongoDB...")
-           
-           # Test connection with 5 second timeout
-           await asyncio.wait_for(client.admin.command('ping'), timeout=5.0)
-           
-           # Get database
-           db = client.dietary_catering
-           logger.info("Successfully connected to MongoDB!")
-           
-           # Update database
-           result = await db.users.update_one(
-               {"email": user.get("email")},
-               {"$set": user_data},
-               upsert=True
-           )
-           
-           logger.info(f"Database operation result: {result.modified_count} documents modified")
-           if result.upserted_id:
-               logger.info(f"New document created with ID: {result.upserted_id}")
-           
-           return {
-               "status": "success", 
-               "message": "Profile updated successfully",
-               "modified_count": result.modified_count,
-               "upserted_id": str(result.upserted_id) if result.upserted_id else None
-           }
+        # Ensure MongoDB connection
+        if not mongodb_db:
+            logger.info("MongoDB connection not initialized, attempting to reconnect...")
+            await init_mongodb()
+            
+        # Update database with timeout
+        try:
+            async with asyncio.timeout(10):  # 10 second timeout
+                result = await mongodb_db.users.update_one(
+                    {"email": user.get("email")},
+                    {"$set": user_data},
+                    upsert=True
+                )
+                
+                logger.info(f"Database operation result: {result.modified_count} documents modified")
+                if result.upserted_id:
+                    logger.info(f"New document created with ID: {result.upserted_id}")
+                
+                return {
+                    "status": "success",
+                    "message": "Profile updated successfully",
+                    "modified_count": result.modified_count,
+                    "upserted_id": str(result.upserted_id) if result.upserted_id else None
+                }
 
-       except asyncio.TimeoutError:
-           logger.error("Database connection timeout")
-           raise HTTPException(status_code=503, detail="Database connection timeout")
-       except Exception as db_error:
-           logger.error(f"Database operation failed: {str(db_error)}")
-           raise HTTPException(status_code=500, detail=f"Database operation failed: {str(db_error)}")
-           
-   except HTTPException as http_ex:
-       # Re-raise HTTP exceptions
-       raise http_ex
-   except Exception as e:
-       # Log unexpected errors
-       logger.error(f"Unexpected error in update_profile: {str(e)}")
-       logger.error(f"Error type: {type(e)}")
-       logger.error(f"Error args: {e.args}")
-       raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
-   
+        except asyncio.TimeoutError:
+            logger.error("Database operation timeout")
+            raise HTTPException(status_code=503, detail="Database operation timeout")
+        except Exception as db_error:
+            logger.error(f"Database operation failed: {str(db_error)}")
+            raise HTTPException(status_code=500, detail=f"Database operation failed: {str(db_error)}")
+            
+    except HTTPException as http_ex:
+        raise http_ex
+    except Exception as e:
+        logger.error(f"Unexpected error in update_profile: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error(f"Error args: {e.args}")
+        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
     user = request.session.get('user')
     if not user:
         return RedirectResponse(url='/login')
-    return templates.TemplateResponse("dashboard.html", {"request": request, "user": user})
-        
+    
+    try:
+        # Get user profile from MongoDB
+        if mongodb_db:
+            user_profile = await mongodb_db.users.find_one({"email": user.get("email")})
+        else:
+            user_profile = None
+            
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {"request": request, "user": user, "user_profile": user_profile}
+        )
+    except Exception as e:
+        logger.error(f"Error fetching user profile: {str(e)}")
+        return templates.TemplateResponse(
+            "dashboard.html",
+            {"request": request, "user": user, "user_profile": None}
+        )
+
 @app.get("/logout")
 async def logout(request: Request):
-    # Clear session
     request.session.clear()
-    
-    # Construct Auth0 logout URL
     return RedirectResponse(
         url=f"https://{AUTH0_DOMAIN}/v2/logout?"
         f"client_id={AUTH0_CLIENT_ID}&"
@@ -470,15 +412,20 @@ async def complete_profile(request: Request):
     if not user:
         return RedirectResponse(url='/login')
         
-    # Cek apakah profil sudah lengkap
-    db_user = await app.mongodb.users.find_one({"email": user['email']})
-    if db_user and db_user['health_profile']['age'] > 0:
-        return RedirectResponse(url='/dashboard')
+    try:
+        # Check if profile is complete
+        if mongodb_db:
+            db_user = await mongodb_db.users.find_one({"email": user.get("email")})
+            if db_user and db_user.get('health_profile', {}).get('age', 0) > 0:
+                return RedirectResponse(url='/dashboard')
         
-    return templates.TemplateResponse("complete_profile.html", {
-        "request": request, 
-        "user": user
-    })
+        return templates.TemplateResponse("complete_profile.html", {
+            "request": request, 
+            "user": user
+        })
+    except Exception as e:
+        logger.error(f"Error in complete_profile: {str(e)}")
+        return RedirectResponse(url='/dashboard')
 
 @app.post("/users", response_model=User, tags=["users"])
 async def create_user(user: User, current_user: dict = Depends(get_current_user)):
@@ -486,10 +433,14 @@ async def create_user(user: User, current_user: dict = Depends(get_current_user)
     Create a new user.
     Requires authentication.
     """
-    user_dict = user.dict()
-    result = await app.mongodb.users.insert_one(user_dict)
-    user_dict['id'] = str(result.inserted_id)
-    return user_dict
+    try:
+        user_dict = user.dict()
+        result = await mongodb_db.users.insert_one(user_dict)
+        user_dict['id'] = str(result.inserted_id)
+        return user_dict
+    except Exception as e:
+        logger.error(f"Error creating user: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/users", response_model=List[User], tags=["users"])
 async def get_users(current_user: dict = Depends(get_current_user)):
@@ -498,24 +449,29 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     Requires authentication.
     """
     try:
-        users = await app.mongodb.users.find().to_list(length=None)
+        users = await mongodb_db.users.find().to_list(length=None)
         for user in users:
             user['id'] = str(user['_id'])
             del user['_id']
         return users
     except Exception as e:
+        logger.error(f"Error fetching users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-    
+
 @app.post("/menu_items", response_model=MenuItem)
 async def create_menu_item(menu_item: MenuItem, current_user: dict = Depends(get_current_user)):
     """
     Create a new menu item.
     Requires authentication.
     """
-    menu_dict = menu_item.dict()
-    result = await app.mongodb.menu_items.insert_one(menu_dict)
-    menu_dict['id'] = str(result.inserted_id)
-    return menu_dict
+    try:
+        menu_dict = menu_item.dict()
+        result = await mongodb_db.menu_items.insert_one(menu_dict)
+        menu_dict['id'] = str(result.inserted_id)
+        return menu_dict
+    except Exception as e:
+        logger.error(f"Error creating menu item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/menu_items/{menu_item_id}", response_model=MenuItem)
 async def get_menu_item(menu_item_id: str, current_user: dict = Depends(get_current_user)):
@@ -523,23 +479,55 @@ async def get_menu_item(menu_item_id: str, current_user: dict = Depends(get_curr
     Get menu item by ID.
     Requires authentication.
     """
-    item = await app.mongodb.menu_items.find_one({"_id": menu_item_id})
-    if item:
-        item['id'] = str(item['_id'])
-        del item['_id']
-        return item
-    raise HTTPException(status_code=404, detail="Menu item not found")
+    try:
+        item = await mongodb_db.menu_items.find_one({"_id": menu_item_id})
+        if item:
+            item['id'] = str(item['_id'])
+            del item['_id']
+            return item
+        raise HTTPException(status_code=404, detail="Menu item not found")
+    except Exception as e:
+        logger.error(f"Error fetching menu item: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/diet-plans", response_model=DietPlan)
 async def create_diet_plan(diet_plan: DietPlan, current_user: dict = Depends(get_current_user)):
-    diet_plan_dict = diet_plan.dict()
-    recommendation = generate_diet_recommendation(diet_plan)
-    diet_plan_dict['recommended_by_ai'] = True
-    result = await app.mongodb.diet_plans.insert_one(diet_plan_dict)
-    diet_plan_dict['id'] = str(result.inserted_id)
-    return diet_plan_dict
+    try:
+        diet_plan_dict = diet_plan.dict()
+        recommendation = generate_diet_recommendation(diet_plan)
+        diet_plan_dict['recommended_by_ai'] = True
+        result = await mongodb_db.diet_plans.insert_one(diet_plan_dict)
+        diet_plan_dict['id'] = str(result.inserted_id)
+        return diet_plan_dict
+    except Exception as e:
+        logger.error(f"Error creating diet plan: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/consultations/", response_model=Consultation)
+async def create_consultation(consultation: Consultation):
+    try:
+        consultation_dict = consultation.dict()
+        result = await mongodb_db.consultations.insert_one(consultation_dict)
+        consultation_dict['id'] = str(result.inserted_id)
+        return consultation_dict
+    except Exception as e:
+        logger.error(f"Error creating consultation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
+@app.post("/orders/", response_model=Order)
+async def create_order(order: Order):
+    try:
+        order_dict = order.dict()
+        result = await mongodb_db.orders.insert_one(order_dict)
+        order_dict['id'] = str(result.inserted_id)
+        return order_dict
+    except Exception as e:
+        logger.error(f"Error creating order: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="0.0.0.0", port=8000)
 
 def generate_diet_recommendation(diet_plan: DietPlan):
     return "Diet recommendation functionality coming soon"
@@ -555,28 +543,3 @@ def generate_diet_recommendation(diet_plan: DietPlan):
         #temperature=0.5,
     #)
     #return response.choices[0].text
-
-# User operations
-# Consultation operations
-@app.post("/consultations/", response_model=Consultation)
-async def create_consultation(consultation: Consultation):
-    consultation_dict = consultation.dict()
-    result = await app.mongodb.consultations.insert_one(consultation_dict)
-    consultation_dict['id'] = str(result.inserted_id)
-    return consultation_dict
-
-# Diet Plan operations
-@app.post("/diet-plans/", response_model=DietPlan)
-async def create_diet_plan(diet_plan: DietPlan):
-    diet_plan_dict = diet_plan.dict()
-    result = await app.mongodb.diet_plans.insert_one(diet_plan_dict)
-    diet_plan_dict['id'] = str(result.inserted_id)
-    return diet_plan_dict
-
-# Order operations
-@app.post("/orders/", response_model=Order)
-async def create_order(order: Order):
-    order_dict = order.dict()
-    result = await app.mongodb.orders.insert_one(order_dict)
-    order_dict['id'] = str(result.inserted_id)
-    return order_dict
