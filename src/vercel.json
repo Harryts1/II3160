@@ -34,7 +34,6 @@
   ],
   "env": {
     "PYTHONPATH": ".",
-    "APP_MODULE": "main:app",
-    "MONGO_URL": "@mongo_url"
+    "APP_MODULE": "main:app"
   }
 }
