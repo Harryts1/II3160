@@ -8,16 +8,30 @@
   ],
   "routes": [
     {
+      "src": "/static/(.*)",
+      "dest": "/frontend/static/$1"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "main.py"
+    },
+    {
+      "src": "/callback",
+      "dest": "main.py"
+    },
+    {
+      "src": "/login",
+      "dest": "main.py"
+    },
+    {
+      "src": "/logout",
+      "dest": "main.py"
+    },
+    {
       "src": "/(.*)",
       "dest": "main.py"
     }
   ],
-  "functions": {
-    "main.py": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  },
   "env": {
     "PYTHONPATH": ".",
     "APP_MODULE": "main:app"
