@@ -161,12 +161,13 @@ app = FastAPI(
 @app.on_event("startup")
 async def startup_db_client():
     try:
+        logger.info("Starting MongoDB connection...")
         app.mongodb = await connect_to_mongo()
         logger.info("MongoDB connection established at startup")
     except Exception as e:
         logger.error(f"Failed to establish MongoDB connection at startup: {str(e)}")
         raise e
-    
+
 app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
@@ -343,6 +344,9 @@ async def callback(request: Request):
 @app.post("/update-profile")
 async def update_profile(request: Request):
     try:
+        # Initialize MongoDB connection
+        mongodb = await connect_to_mongo()
+        
         user = request.session.get('user')
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
@@ -367,8 +371,7 @@ async def update_profile(request: Request):
         
         logger.info(f"Attempting to update/insert user data for email: {user.get('email')}")
         
-        # Use update_one with upsert
-        result = await app.mongodb.users.update_one(
+        result = await mongodb.users.update_one(
             {"email": user.get("email")},
             {"$set": user_data},
             upsert=True
