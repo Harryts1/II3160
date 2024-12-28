@@ -127,6 +127,39 @@ class MenuItem(BaseModel):
                 "category": "main_course"
             }
         }
+# Database connection utility function
+async def get_database():
+    try:
+        logger.info(f"Connecting to MongoDB at: {MONGO_URL[:20]}...")
+        client = AsyncIOMotorClient(
+            MONGO_URL,
+            serverSelectionTimeoutMS=5000,
+            connectTimeoutMS=5000,
+            socketTimeoutMS=5000,
+            maxPoolSize=1
+        )
+        await client.admin.command('ping')
+        db = client.dietary_catering
+        
+        # Ensure collections exist
+        collections = await db.list_collection_names()
+        required_collections = ['users', 'menu_items', 'diet_plans', 'consultations', 'orders']
+        
+        for collection in required_collections:
+            if collection not in collections:
+                await db.create_collection(collection)
+                
+        # Create indexes if they don't exist
+        await db.users.create_index("email", unique=True)
+        await db.menu_items.create_index("name")
+        await db.diet_plans.create_index("user_id")
+        await db.consultations.create_index("user_id")
+        await db.orders.create_index([("user_id", 1), ("created_at", -1)])
+        
+        return db
+    except Exception as e:
+        logger.error(f"Database connection error: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Database connection failed: {str(e)}")
 
 # MongoDB Connection Function
 async def init_mongodb():
@@ -371,6 +404,10 @@ async def callback(request: Request):
 @app.post("/update-profile")
 async def update_profile(request: Request):
     try:
+        # Get fresh database connection
+        db = await get_database()
+        logger.info("Database connection established")
+        
         user = request.session.get('user')
         if not user:
             logger.error("No user in session")
@@ -378,20 +415,6 @@ async def update_profile(request: Request):
         
         form = await request.form()
         logger.info(f"Form data received: {dict(form)}")
-        
-        # Tambahkan logging untuk cek koneksi database
-        if mongodb_db is None:
-            logger.error("mongodb_db is None!")
-            return {"status": "error", "message": "Database connection not available"}
-            
-        logger.info("Checking existing collections...")
-        collections = await mongodb_db.list_collection_names()
-        logger.info(f"Available collections: {collections}")
-        
-        # Create users collection if not exists
-        if 'users' not in collections:
-            logger.info("Creating users collection...")
-            await mongodb_db.create_collection('users')
 
         user_data = {
             "name": user.get("name", ""),
@@ -401,60 +424,58 @@ async def update_profile(request: Request):
                 "age": int(form.get("age", 0)),
                 "weight": float(form.get("weight", 0)),
                 "height": float(form.get("height", 0)),
-                "medical_conditions": [],
-                "allergies": [],
-                "dietary_preferences": []
+                "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
+                "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
+                "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
             },
             "updated_at": datetime.now()
         }
         
-        logger.info(f"Attempting to insert/update user with email: {user.get('email')}")
-        logger.info(f"User data: {user_data}")
+        logger.info(f"Attempting to update user: {user.get('email')}")
+        logger.info(f"Update data: {user_data}")
 
-        try:
-            result = await mongodb_db.users.update_one(
-                {"email": user.get("email")},
-                {"$set": user_data},
-                upsert=True
-            )
-            
-            logger.info(f"Update result: Modified={result.modified_count}, "
-                       f"Matched={result.matched_count}, "
-                       f"Upserted_id={result.upserted_id}")
-                       
-            # Verify if document exists
-            doc = await mongodb_db.users.find_one({"email": user.get("email")})
-            logger.info(f"Verification - Found document: {doc}")
-            
-            return {"status": "success", "message": "Profile updated successfully"}
-            
-        except Exception as db_error:
-            logger.error(f"Database operation error: {str(db_error)}")
-            return {"status": "error", "message": f"Database operation failed: {str(db_error)}"}
-            
+        result = await db.users.update_one(
+            {"email": user.get("email")},
+            {"$set": user_data},
+            upsert=True
+        )
+        
+        # Verify the update
+        saved_doc = await db.users.find_one({"email": user.get("email")})
+        logger.info(f"Updated document: {saved_doc}")
+
+        return {
+            "status": "success", 
+            "message": "Profile updated successfully",
+            "modified_count": result.modified_count,
+            "upserted_id": str(result.upserted_id) if result.upserted_id else None
+        }
     except Exception as e:
-        logger.error(f"General error in update_profile: {str(e)}")
+        logger.error(f"Update profile error: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
         return {"status": "error", "message": str(e)}
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
-    user = request.session.get('user')
-    if not user:
-        return RedirectResponse(url='/login')
-    
     try:
-        # Get user profile from MongoDB
-        if mongodb_db:
-            user_profile = await mongodb_db.users.find_one({"email": user.get("email")})
-        else:
-            user_profile = None
+        user = request.session.get('user')
+        if not user:
+            return RedirectResponse(url='/login')
+            
+        # Get fresh database connection
+        db = await get_database()
+        logger.info("Database connection established for dashboard")
+        
+        # Get user profile
+        user_profile = await db.users.find_one({"email": user.get("email")})
+        logger.info(f"Found user profile: {user_profile}")
             
         return templates.TemplateResponse(
             "dashboard.html",
             {"request": request, "user": user, "user_profile": user_profile}
         )
     except Exception as e:
-        logger.error(f"Error fetching user profile: {str(e)}")
+        logger.error(f"Dashboard error: {str(e)}")
         return templates.TemplateResponse(
             "dashboard.html",
             {"request": request, "user": user, "user_profile": None}

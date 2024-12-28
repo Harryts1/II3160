@@ -32,8 +32,14 @@
       "dest": "main.py"
     }
   ],
+  "functions": {
+    "api/*.py": {
+      "maxDuration": 30
+    }
+  },
   "env": {
     "PYTHONPATH": ".",
-    "APP_MODULE": "main:app"
+    "APP_MODULE": "main:app",
+    "MONGO_URL": "@mongo_url"
   }
 }
