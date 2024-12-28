@@ -368,7 +368,7 @@ async def update_profile(request: Request):
         logger.info(f"Attempting to update/insert user data for email: {user.get('email')}")
         
         # Use update_one with upsert
-        result = await db.users.update_one(
+        result = await app.mongodb.users.update_one(
             {"email": user.get("email")},
             {"$set": user_data},
             upsert=True
@@ -407,7 +407,7 @@ async def complete_profile(request: Request):
         return RedirectResponse(url='/login')
         
     # Cek apakah profil sudah lengkap
-    db_user = await db.users.find_one({"email": user['email']})
+    db_user = await app.mongodb.users.find_one({"email": user['email']})
     if db_user and db_user['health_profile']['age'] > 0:
         return RedirectResponse(url='/dashboard')
         
@@ -423,7 +423,7 @@ async def create_user(user: User, current_user: dict = Depends(get_current_user)
     Requires authentication.
     """
     user_dict = user.dict()
-    result = await db.users.insert_one(user_dict)
+    result = await app.mongodb.users.insert_one(user_dict)
     user_dict['id'] = str(result.inserted_id)
     return user_dict
 
@@ -434,7 +434,7 @@ async def get_users(current_user: dict = Depends(get_current_user)):
     Requires authentication.
     """
     try:
-        users = await db.users.find().to_list(length=None)
+        users = await app.mongodb.users.find().to_list(length=None)
         for user in users:
             user['id'] = str(user['_id'])
             del user['_id']
@@ -449,7 +449,7 @@ async def create_menu_item(menu_item: MenuItem, current_user: dict = Depends(get
     Requires authentication.
     """
     menu_dict = menu_item.dict()
-    result = await db.menu_items.insert_one(menu_dict)
+    result = await app.mongodb.menu_items.insert_one(menu_dict)
     menu_dict['id'] = str(result.inserted_id)
     return menu_dict
 
@@ -459,7 +459,7 @@ async def get_menu_item(menu_item_id: str, current_user: dict = Depends(get_curr
     Get menu item by ID.
     Requires authentication.
     """
-    item = await db.menu_items.find_one({"_id": menu_item_id})
+    item = await app.mongodb.menu_items.find_one({"_id": menu_item_id})
     if item:
         item['id'] = str(item['_id'])
         del item['_id']
@@ -471,7 +471,7 @@ async def create_diet_plan(diet_plan: DietPlan, current_user: dict = Depends(get
     diet_plan_dict = diet_plan.dict()
     recommendation = generate_diet_recommendation(diet_plan)
     diet_plan_dict['recommended_by_ai'] = True
-    result = await db.diet_plans.insert_one(diet_plan_dict)
+    result = await app.mongodb.diet_plans.insert_one(diet_plan_dict)
     diet_plan_dict['id'] = str(result.inserted_id)
     return diet_plan_dict
 
@@ -497,7 +497,7 @@ def generate_diet_recommendation(diet_plan: DietPlan):
 @app.post("/consultations/", response_model=Consultation)
 async def create_consultation(consultation: Consultation):
     consultation_dict = consultation.dict()
-    result = await db.consultations.insert_one(consultation_dict)
+    result = await app.mongodb.consultations.insert_one(consultation_dict)
     consultation_dict['id'] = str(result.inserted_id)
     return consultation_dict
 
@@ -505,7 +505,7 @@ async def create_consultation(consultation: Consultation):
 @app.post("/diet-plans/", response_model=DietPlan)
 async def create_diet_plan(diet_plan: DietPlan):
     diet_plan_dict = diet_plan.dict()
-    result = await db.diet_plans.insert_one(diet_plan_dict)
+    result = await app.mongodb.diet_plans.insert_one(diet_plan_dict)
     diet_plan_dict['id'] = str(result.inserted_id)
     return diet_plan_dict
 
@@ -513,6 +513,6 @@ async def create_diet_plan(diet_plan: DietPlan):
 @app.post("/orders/", response_model=Order)
 async def create_order(order: Order):
     order_dict = order.dict()
-    result = await db.orders.insert_one(order_dict)
+    result = await app.mongodb.orders.insert_one(order_dict)
     order_dict['id'] = str(result.inserted_id)
     return order_dict
