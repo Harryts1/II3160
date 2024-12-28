@@ -302,76 +302,60 @@ async def callback(request: Request):
 @app.post("/update-profile")
 async def update_profile(request: Request):
     try:
+        # Basic logging for troubleshooting
+        logger.info("Starting update_profile function")
+        
         # Get user session
         user = request.session.get('user')
+        logger.info(f"User from session: {user}")
         if not user:
-            logger.error("User not authenticated")
+            logger.error("No user in session")
             raise HTTPException(status_code=401, detail="Not authenticated")
-        
+
         # Get form data
         form = await request.form()
-        logger.info(f"Received form data: {dict(form)}")
-        
-        # Prepare user data
-        try:
-            user_data = {
-                "name": user.get("name", ""),
-                "email": user.get("email", ""),
-                "phone": form.get("phone", ""),
-                "health_profile": {
-                    "age": int(form.get("age", 0)),
-                    "weight": float(form.get("weight", 0)),
-                    "height": float(form.get("height", 0)),
-                    "medical_conditions": form.get("medical_conditions", "").split(",") if form.get("medical_conditions") else [],
-                    "allergies": form.get("allergies", "").split(",") if form.get("allergies") else [],
-                    "dietary_preferences": form.get("dietary_preferences", "").split(",") if form.get("dietary_preferences") else []
-                },
-                "updated_at": datetime.now()
+        logger.info(f"Form data received: {dict(form)}")
+
+        # Prepare user data with simple structure
+        user_data = {
+            "name": user.get("name", ""),
+            "email": user.get("email", ""),
+            "phone": str(form.get("phone", "")),  # Convert to string
+            "health_profile": {
+                "age": int(form.get("age", 0)),
+                "weight": float(form.get("weight", 0)),
+                "height": float(form.get("height", 0)),
+                "medical_conditions": [],  # Simplified
+                "allergies": [],  # Simplified
+                "dietary_preferences": []  # Simplified
             }
-            logger.info(f"Prepared user data: {user_data}")
-        except ValueError as e:
-            logger.error(f"Error parsing form data: {str(e)}")
-            raise HTTPException(status_code=400, detail=f"Invalid form data: {str(e)}")
+        }
+        logger.info(f"Prepared user data: {user_data}")
 
-        # Ensure MongoDB connection
+        # Simple database update
         if not mongodb_db:
-            logger.info("MongoDB connection not initialized, attempting to reconnect...")
-            await init_mongodb()
-            
-        # Update database with timeout
-        try:
-            async with asyncio.timeout(10):  # 10 second timeout
-                result = await mongodb_db.users.update_one(
-                    {"email": user.get("email")},
-                    {"$set": user_data},
-                    upsert=True
-                )
-                
-                logger.info(f"Database operation result: {result.modified_count} documents modified")
-                if result.upserted_id:
-                    logger.info(f"New document created with ID: {result.upserted_id}")
-                
-                return {
-                    "status": "success",
-                    "message": "Profile updated successfully",
-                    "modified_count": result.modified_count,
-                    "upserted_id": str(result.upserted_id) if result.upserted_id else None
-                }
+            logger.error("MongoDB connection not initialized")
+            raise HTTPException(status_code=500, detail="Database connection not initialized")
 
-        except asyncio.TimeoutError:
-            logger.error("Database operation timeout")
-            raise HTTPException(status_code=503, detail="Database operation timeout")
-        except Exception as db_error:
-            logger.error(f"Database operation failed: {str(db_error)}")
-            raise HTTPException(status_code=500, detail=f"Database operation failed: {str(db_error)}")
+        try:
+            logger.info("Attempting database update")
+            result = await mongodb_db.users.update_one(
+                {"email": user.get("email")},
+                {"$set": user_data},
+                upsert=True
+            )
+            logger.info(f"Database update successful: {result.modified_count} documents modified")
             
-    except HTTPException as http_ex:
-        raise http_ex
+            return {"status": "success", "message": "Profile updated successfully"}
+            
+        except Exception as db_error:
+            logger.error(f"Database error: {str(db_error)}")
+            raise HTTPException(status_code=500, detail=f"Database error: {str(db_error)}")
+            
     except Exception as e:
-        logger.error(f"Unexpected error in update_profile: {str(e)}")
+        logger.error(f"Update profile error: {str(e)}")
         logger.error(f"Error type: {type(e)}")
-        logger.error(f"Error args: {e.args}")
-        raise HTTPException(status_code=500, detail=f"Failed to update profile: {str(e)}")
+        return {"status": "error", "message": str(e)}
 
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request):
