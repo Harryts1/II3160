@@ -23,6 +23,9 @@ from pathlib import Path
 from motor.motor_asyncio import AsyncIOMotorClient
 import logging
 import asyncio
+from pymongo.server_api import ServerApi
+import certifi
+import ssl
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
