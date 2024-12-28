@@ -39,8 +39,8 @@ AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
 SECRET_KEY = config('SECRET_KEY', cast=str)
 
 # Global MongoDB connection
-mongodb_client = None
-mongodb_db = None
+mongodb_db = mongodb_client.get_database('dietary_catering')
+logger.info(f"Connected to database: {mongodb_db.name}")
 
 # Models
 class User(BaseModel):
@@ -302,58 +302,61 @@ async def callback(request: Request):
 @app.post("/update-profile")
 async def update_profile(request: Request):
     try:
-        # Basic logging for troubleshooting
-        logger.info("Starting update_profile function")
-        
-        # Get user session
         user = request.session.get('user')
-        logger.info(f"User from session: {user}")
         if not user:
             logger.error("No user in session")
             raise HTTPException(status_code=401, detail="Not authenticated")
-
-        # Get form data
+        
         form = await request.form()
         logger.info(f"Form data received: {dict(form)}")
-
-        # Prepare user data with simple structure
+        
         user_data = {
             "name": user.get("name", ""),
             "email": user.get("email", ""),
-            "phone": str(form.get("phone", "")),  # Convert to string
+            "phone": str(form.get("phone", "")),
             "health_profile": {
                 "age": int(form.get("age", 0)),
                 "weight": float(form.get("weight", 0)),
                 "height": float(form.get("height", 0)),
-                "medical_conditions": [],  # Simplified
-                "allergies": [],  # Simplified
-                "dietary_preferences": []  # Simplified
-            }
+                "medical_conditions": [],
+                "allergies": [],
+                "dietary_preferences": []
+            },
+            "updated_at": datetime.now()
         }
-        logger.info(f"Prepared user data: {user_data}")
-
-        # Simple database update
+        
+        # Verifikasi koneksi database
         if not mongodb_db:
             logger.error("MongoDB connection not initialized")
             raise HTTPException(status_code=500, detail="Database connection not initialized")
-
-        try:
-            logger.info("Attempting database update")
-            result = await mongodb_db.users.update_one(
-                {"email": user.get("email")},
-                {"$set": user_data},
-                upsert=True
-            )
-            logger.info(f"Database update successful: {result.modified_count} documents modified")
             
-            return {"status": "success", "message": "Profile updated successfully"}
-            
-        except Exception as db_error:
-            logger.error(f"Database error: {str(db_error)}")
-            raise HTTPException(status_code=500, detail=f"Database error: {str(db_error)}")
-            
+        logger.info(f"Current database: {mongodb_db.name}")
+        logger.info(f"Available collections: {await mongodb_db.list_collection_names()}")
+        
+        # Eksplisit gunakan collection users
+        users_collection = mongodb_db.get_collection('users')
+        
+        # Tambahkan logging sebelum operasi
+        logger.info(f"Attempting to update/insert document with email: {user.get('email')}")
+        logger.info(f"User data to be inserted: {user_data}")
+        
+        result = await users_collection.update_one(
+            {"email": user.get("email")},
+            {"$set": user_data},
+            upsert=True
+        )
+        
+        # Verifikasi hasil operasi
+        logger.info(f"Update result - Modified: {result.modified_count}, Upserted ID: {result.upserted_id}")
+        
+        # Verifikasi dokumen tersimpan
+        saved_doc = await users_collection.find_one({"email": user.get("email")})
+        logger.info(f"Saved document: {saved_doc}")
+        
+        return {"status": "success", "message": "Profile updated successfully"}
+        
     except Exception as e:
-        logger.error(f"Update profile error: {str(e)}")
+        logger.error(f"Error in update_profile: {str(e)}")
         logger.error(f"Error type: {type(e)}")
         return {"status": "error", "message": str(e)}
 
