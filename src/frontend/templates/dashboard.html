@@ -4,99 +4,108 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Health Based Dietary Dashboard</title>
-    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
 </head>
-<body class="bg-gray-100">
+<body>
     <!-- Navigation -->
-    <nav class="bg-white shadow-lg">
-        <div class="max-w-6xl mx-auto px-4">
-            <div class="flex justify-between items-center py-4">
-                <div class="flex items-center">
-                    <span class="font-semibold text-xl text-gray-800">Health Based Dietary</span>
-                </div>
-                <div class="flex items-center space-x-4">
-                    <span class="text-gray-600">Welcome, {{ user.get('name', 'User') }}</span>
-                    <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">Logout</a>
-                </div>
+    <nav class="nav">
+        <div class="nav-container">
+            <div class="nav-brand">
+                <i class="fas fa-user"></i>
+                <span>Health Based Dietary</span>
+            </div>
+            <div class="nav-actions">
+                <button id="whatsappButton" class="whatsapp-btn">
+                    <i class="fab fa-whatsapp"></i>
+                    Order via WhatsApp
+                </button>
+                <a href="/logout" class="btn">Logout</a>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <div class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <!-- Profile Section -->
-            <div class="profile-section">
-                <h2 class="text-2xl font-semibold mb-6">Your Profile</h2>
-                <form id="profileForm" class="space-y-4">
-                    <div class="grid grid-cols-2 gap-4">
-                        <div>
-                            <label class="form-label">Age</label>
-                            <input type="number" name="age" class="form-input" value="{{ user_profile.health_profile.age if user_profile else '' }}">
-                        </div>
-                        <div>
-                            <label class="form-label">Weight (kg)</label>
-                            <input type="number" name="weight" step="0.1" class="form-input" value="{{ user_profile.health_profile.weight if user_profile else '' }}">
-                        </div>
-                    </div>
-                    <div>
-                        <label class="form-label">Height (cm)</label>
-                        <input type="number" name="height" class="form-input" value="{{ user_profile.health_profile.height if user_profile else '' }}">
-                    </div>
-                    <div>
-                        <label class="form-label">Medical Conditions</label>
-                        <input type="text" name="medical_conditions" placeholder="Separate with commas" class="form-input" 
-                               value="{{ ','.join(user_profile.health_profile.medical_conditions) if user_profile else '' }}">
-                    </div>
-                    <div>
-                        <label class="form-label">Dietary Preferences</label>
-                        <input type="text" name="dietary_preferences" placeholder="Separate with commas" class="form-input"
-                               value="{{ ','.join(user_profile.health_profile.dietary_preferences) if user_profile else '' }}">
-                    </div>
-                    <button type="submit" class="btn-primary">Update Profile</button>
-                </form>
+    <div class="container">
+        <div class="grid">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <button id="profileTab" class="nav-tab active">
+                    <i class="fas fa-cog"></i>
+                    <span>Profile Settings</span>
+                </button>
+                <button id="recommendationsTab" class="nav-tab">
+                    <i class="fas fa-robot"></i>
+                    <span>AI Recommendations</span>
+                </button>
             </div>
 
-            <!-- AI Recommendations Section -->
-            <div class="space-y-6">
-                <h2 class="text-2xl font-semibold">AI Recommendations</h2>
-                <div class="recommendation-card">
-                    <h3 class="text-xl font-semibold mb-4">Today's Menu Suggestions</h3>
-                    <div class="space-y-3">
-                        <div class="meal-suggestion breakfast">
-                            <p class="font-medium text-green-800">Breakfast</p>
-                            <p class="text-green-600">Oatmeal with fruits and nuts (300 kcal)</p>
+            <!-- Content Area -->
+            <div class="content">
+                <!-- Profile Section -->
+                <div id="profileSection">
+                    <h2>Profile Settings</h2>
+                    <form id="profileForm">
+                        <div class="form-group">
+                            <label class="form-label">Name</label>
+                            <input type="text" name="name" class="form-input">
                         </div>
-                        <div class="meal-suggestion lunch">
-                            <p class="font-medium text-blue-800">Lunch</p>
-                            <p class="text-blue-600">Grilled chicken salad (400 kcal)</p>
+                        
+                        <div class="form-grid">
+                            <div class="form-group">
+                                <label class="form-label">Age</label>
+                                <input type="number" name="age" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Weight (kg)</label>
+                                <input type="number" name="weight" step="0.1" class="form-input">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label">Height (cm)</label>
+                                <input type="number" name="height" class="form-input">
+                            </div>
                         </div>
-                        <div class="meal-suggestion dinner">
-                            <p class="font-medium text-purple-800">Dinner</p>
-                            <p class="text-purple-600">Salmon with vegetables (450 kcal)</p>
+
+                        <div class="form-group">
+                            <label class="form-label">Medical Conditions</label>
+                            <input type="text" name="medicalConditions" class="form-input" 
+                                   placeholder="Separate with commas">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Allergies</label>
+                            <input type="text" name="allergies" class="form-input" 
+                                   placeholder="Separate with commas">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Dietary Preferences</label>
+                            <input type="text" name="dietaryPreferences" class="form-input" 
+                                   placeholder="Separate with commas">
+                        </div>
+
+                        <button type="submit" class="btn btn-primary">Update Profile</button>
+                    </form>
+                </div>
+
+                <!-- AI Recommendations Section -->
+                <div id="recommendationsSection" class="recommendations hidden">
+                    <h2>AI Health Recommendations</h2>
+                    
+                    <div class="recommendation-card">
+                        <h3 class="card-title">Personalized Diet Plan</h3>
+                        <p>Based on your health profile, here are your recommendations:</p>
+                        <div id="nutritionGoals" class="nutrition-grid">
+                            <!-- Will be populated by JS -->
                         </div>
                     </div>
-                </div>
-                
-                <div class="recommendation-card">
-                    <h3 class="text-xl font-semibold mb-4">Nutritional Goals</h3>
-                    <div class="nutritional-goals">
-                        <div class="goal-card">
-                            <p>Calories</p>
-                            <p class="goal-value">2000</p>
-                            <p class="goal-unit">kcal/day</p>
-                        </div>
-                        <div class="goal-card">
-                            <p>Protein</p>
-                            <p class="goal-value">75</p>
-                            <p class="goal-unit">g/day</p>
-                        </div>
-                        <div class="goal-card">
-                            <p>Water</p>
-                            <p class="goal-value">2.5</p>
-                            <p class="goal-unit">L/day</p>
+
+                    <div class="recommendation-card">
+                        <h3 class="card-title">Recommended Menu</h3>
+                        <div id="menuRecommendations">
+                            <ul class="menu-list">
+                                <!-- Will be populated by JS -->
+                            </ul>
                         </div>
                     </div>
                 </div>
@@ -104,12 +113,6 @@
         </div>
     </div>
 
-    <!-- WhatsApp Button -->
-    <a href="#" class="whatsapp-button">
-        <i class="fab fa-whatsapp"></i>
-    </a>
-
-    <!-- JavaScript -->
     <script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
 </body>
 </html>
