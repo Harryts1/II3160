@@ -620,17 +620,39 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
-def generate_diet_recommendation(diet_plan: DietPlan):
-    return "Diet recommendation functionality coming soon"
-
-#def generate_diet_recommendation(diet_plan: DietPlan):
-#    prompt = f"Berikan rekomendasi diet sehat berdasarkan menu berikut: {diet_plan.menu_items}"
-#    response = openai.Completion.create(
-#        engine="davinci",
-        #prompt=prompt,
-        #max_tokens=1024,
-        #n=1,
-        #stop=None,
-        #temperature=0.5,
-    #)
-    #return response.choices[0].text
+@app.get("/recommendations")
+async def get_recommendations(request: Request):
+    try:
+        user = request.session.get('user')
+        if not user:
+            raise HTTPException(status_code=401, detail="Not authenticated")
+        
+        # Contoh response data
+        return {
+            "nutritionGoals": {
+                "Calories": "2000 kcal",
+                "Protein": "75g",
+                "Carbs": "250g",
+                "Fat": "65g"
+            },
+            "menuItems": [
+                {
+                    "name": "Breakfast: Oatmeal with fruits",
+                    "calories": "300",
+                    "description": "Rich in fiber and antioxidants"
+                },
+                {
+                    "name": "Lunch: Grilled chicken salad",
+                    "calories": "400",
+                    "description": "High protein, low carb"
+                },
+                {
+                    "name": "Dinner: Salmon with vegetables",
+                    "calories": "450",
+                    "description": "Omega-3 rich, heart-healthy"
+                }
+            ],
+            "healthAdvice": "Based on your profile, focus on consuming more protein and maintaining regular meal times."
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

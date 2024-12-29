@@ -20,17 +20,19 @@ function switchTab(tabName) {
     const recommendationsTab = document.getElementById('recommendationsTab');
 
     // Reset active states
-    [profileTab, recommendationsTab].forEach(tab => tab.classList.remove('active'));
+    [profileTab, recommendationsTab].forEach(tab => {
+        tab.classList.remove('bg-blue-50', 'text-blue-600');
+    });
     
     if (tabName === 'profile') {
         profileSection.classList.remove('hidden');
         recommendationsSection.classList.add('hidden');
-        profileTab.classList.add('active');
+        profileTab.classList.add('bg-blue-50', 'text-blue-600');
     } else {
         profileSection.classList.add('hidden');
         recommendationsSection.classList.remove('hidden');
-        recommendationsTab.classList.add('active');
-        loadHealthRecommendations();
+        recommendationsTab.classList.add('bg-blue-50', 'text-blue-600');
+        loadRecommendations();
     }
 }
 
@@ -38,58 +40,24 @@ function switchTab(tabName) {
 function initializeProfileForm() {
     const form = document.getElementById('profileForm');
     form.addEventListener('submit', handleProfileSubmit);
-    loadUserProfile();
-}
-
-async function loadUserProfile() {
-    try {
-        const response = await fetch('/api/profile');
-        if (response.ok) {
-            const profile = await response.json();
-            populateProfileForm(profile);
-        }
-    } catch (error) {
-        showNotification('Error loading profile', 'error');
-    }
-}
-
-function populateProfileForm(profile) {
-    const form = document.getElementById('profileForm');
-    Object.entries(profile).forEach(([key, value]) => {
-        const input = form.elements[key];
-        if (input) {
-            input.value = Array.isArray(value) ? value.join(', ') : value;
-        }
-    });
 }
 
 async function handleProfileSubmit(e) {
     e.preventDefault();
     const form = e.target;
+    form.classList.add('loading');
     
     try {
-        form.classList.add('loading');
         const formData = new FormData(form);
-        const profileData = Object.fromEntries(formData);
-
-        // Convert comma-separated strings to arrays
-        ['medicalConditions', 'allergies', 'dietaryPreferences'].forEach(field => {
-            if (profileData[field]) {
-                profileData[field] = profileData[field].split(',').map(item => item.trim());
-            }
-        });
-
-        const response = await fetch('/api/profile/update', {
+        const response = await fetch('/update-profile', {
             method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify(profileData)
+            body: formData,
+            credentials: 'include'
         });
 
         if (response.ok) {
             showNotification('Profile updated successfully!', 'success');
-            loadHealthRecommendations();
+            loadRecommendations();
         } else {
             throw new Error('Failed to update profile');
         }
@@ -100,16 +68,16 @@ async function handleProfileSubmit(e) {
     }
 }
 
-// AI Recommendations
-async function loadHealthRecommendations() {
+// Recommendations Section
+async function loadRecommendations() {
     const recommendationsSection = document.getElementById('recommendationsSection');
+    recommendationsSection.classList.add('loading');
+    
     try {
-        recommendationsSection.classList.add('loading');
-        
-        const response = await fetch('/api/recommendations');
+        const response = await fetch('/recommendations');
         if (response.ok) {
-            const recommendations = await response.json();
-            updateRecommendationsUI(recommendations);
+            const data = await response.json();
+            updateRecommendationsUI(data);
         } else {
             throw new Error('Failed to load recommendations');
         }
@@ -120,54 +88,58 @@ async function loadHealthRecommendations() {
     }
 }
 
-function updateRecommendationsUI(recommendations) {
-    updateNutritionGoals(recommendations.nutritionGoals);
-    updateMenuRecommendations(recommendations.menuItems);
-    updateHealthAdvice(recommendations.healthAdvice);
+function updateRecommendationsUI(data) {
+    // Update Nutrition Goals
+    updateNutritionGoals(data);
+    // Update Menu Recommendations
+    updateMenuRecommendations(data);
 }
 
-function updateNutritionGoals(goals) {
+function updateNutritionGoals(data) {
     const container = document.getElementById('nutritionGoals');
-    container.innerHTML = '';
-
-    Object.entries(goals).forEach(([nutrient, value]) => {
-        const nutrientCard = document.createElement('div');
-        nutrientCard.className = 'nutrition-item';
-        nutrientCard.innerHTML = `
-            <div class="nutrition-label">${nutrient}</div>
-            <div class="nutrition-value">${value}</div>
-        `;
-        container.appendChild(nutrientCard);
-    });
+    container.innerHTML = `
+        <div class="bg-white p-4 rounded-md shadow-sm">
+            <p class="text-sm text-gray-500">Calories</p>
+            <p class="text-lg font-semibold">${data.calories_target} kcal</p>
+        </div>
+        <div class="bg-white p-4 rounded-md shadow-sm">
+            <p class="text-sm text-gray-500">Protein</p>
+            <p class="text-lg font-semibold">${data.protein_target}g</p>
+        </div>
+        <div class="bg-white p-4 rounded-md shadow-sm">
+            <p class="text-sm text-gray-500">Carbs</p>
+            <p class="text-lg font-semibold">${data.carbs_target}g</p>
+        </div>
+        <div class="bg-white p-4 rounded-md shadow-sm">
+            <p class="text-sm text-gray-500">Fat</p>
+            <p class="text-lg font-semibold">${data.fat_target}g</p>
+        </div>
+    `;
 }
 
-function updateMenuRecommendations(menuItems) {
+function updateMenuRecommendations(data) {
     const container = document.getElementById('menuRecommendations');
-    container.innerHTML = `
-        <p>Recommended meals based on your health profile:</p>
-        <ul class="menu-list">
-            ${menuItems.map(item => `
-                <li class="menu-item">
-                    ${item.name} (${item.calories} kcal)
-                    <small>${item.description || ''}</small>
-                </li>
-            `).join('')}
-        </ul>
-    `;
-}
+    if (data.meal_plan && data.meal_plan.length > 0) {
+        const menuItems = data.meal_plan.map(meal => 
+            `<li class="menu-item p-3 bg-white rounded-md shadow-sm">
+                <div class="font-medium">${meal.name}</div>
+                <div class="text-sm text-gray-600">${meal.calories} kcal</div>
+                ${meal.description ? `<div class="text-sm text-gray-500">${meal.description}</div>` : ''}
+             </li>`
+        ).join('');
 
-function updateHealthAdvice(advice) {
-    if (!advice) return;
-    
-    const container = document.createElement('div');
-    container.className = 'recommendation-card';
-    container.innerHTML = `
-        <h3 class="card-title">Health Recommendations</h3>
-        <p>${advice}</p>
-    `;
-    
-    const recommendationsSection = document.getElementById('recommendationsSection');
-    recommendationsSection.appendChild(container);
+        container.innerHTML = `
+            <p class="text-green-600 mb-4">Here are your recommended meals:</p>
+            <ul class="space-y-3">
+                ${menuItems}
+            </ul>
+            ${data.special_instructions ? 
+                `<div class="mt-4 p-3 bg-yellow-50 rounded-md">
+                    <p class="text-yellow-700">${data.special_instructions}</p>
+                </div>` : ''
+            }
+        `;
+    }
 }
 
 // WhatsApp Integration
@@ -177,13 +149,21 @@ function setupWhatsAppButton() {
 }
 
 function handleWhatsAppClick() {
-    // Get current recommendations
     const menuItems = document.querySelectorAll('.menu-item');
     let message = "Halo, saya ingin memesan makanan sesuai rekomendasi:\n\n";
     
-    menuItems.forEach(item => {
-        message += `- ${item.textContent.trim()}\n`;
-    });
+    if (menuItems.length > 0) {
+        menuItems.forEach(item => {
+            const name = item.querySelector('.font-medium').textContent;
+            const calories = item.querySelector('.text-gray-600').textContent;
+            message += `- ${name} (${calories})\n`;
+        });
+    } else {
+        // Default message if no recommendations loaded
+        message += "- Oatmeal with fruits (300 kcal)\n";
+        message += "- Grilled chicken salad (400 kcal)\n";
+        message += "- Salmon with vegetables (450 kcal)";
+    }
 
     const whatsappUrl = `https://wa.me/+6281275722872?text=${encodeURIComponent(message)}`;
     window.open(whatsappUrl, '_blank');
@@ -192,13 +172,17 @@ function handleWhatsAppClick() {
 // Notification System
 function showNotification(message, type = 'success') {
     const notification = document.createElement('div');
-    notification.className = `notification ${type}`;
+    notification.className = `fixed top-4 right-4 p-4 rounded-md text-white ${
+        type === 'success' ? 'bg-green-500' : 'bg-red-500'
+    }`;
+    notification.style.zIndex = '1000';
     notification.textContent = message;
     
     document.body.appendChild(notification);
     
     setTimeout(() => {
         notification.style.opacity = '0';
+        notification.style.transition = 'opacity 0.3s ease';
         setTimeout(() => notification.remove(), 300);
     }, 3000);
 }
@@ -206,16 +190,4 @@ function showNotification(message, type = 'success') {
 // Helper Functions
 function formatNumber(value, unit = '') {
     return `${parseFloat(value).toLocaleString()}${unit}`;
-}
-
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
-            clearTimeout(timeout);
-            func(...args);
-        };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
 }
