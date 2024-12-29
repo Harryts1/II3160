@@ -596,7 +596,7 @@ async def get_menu_item(menu_item_id: str, current_user: dict = Depends(get_curr
 async def create_diet_plan(diet_plan: DietPlan, current_user: dict = Depends(get_current_user)):
     try:
         diet_plan_dict = diet_plan.dict()
-        recommendation = generate_diet_recommendation(diet_plan)
+        recommendation = recommendation(diet_plan)
         diet_plan_dict['recommended_by_ai'] = True
         result = await mongodb_db.diet_plans.insert_one(diet_plan_dict)
         diet_plan_dict['id'] = str(result.inserted_id)
