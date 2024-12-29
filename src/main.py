@@ -292,7 +292,7 @@ async def shutdown_db_client():
         mongodb_client.close()
         logger.info("MongoDB connection closed")
 
-app.mount("/static", StaticFiles(directory="src/frontend/static"), name="static")
+app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
 templates = Jinja2Templates(directory="frontend/templates")
 
 # Add CORS middleware
