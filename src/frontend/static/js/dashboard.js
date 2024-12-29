@@ -1,9 +1,10 @@
-// Profile Form Handler
+// Initialize on page load
 document.addEventListener('DOMContentLoaded', function() {
     initializeProfileForm();
     setupWhatsAppButton();
 });
 
+// Profile Form Handler
 function initializeProfileForm() {
     const profileForm = document.getElementById('profileForm');
     if (profileForm) {
@@ -36,25 +37,26 @@ async function handleProfileSubmit(e) {
 
 // WhatsApp Integration
 function setupWhatsAppButton() {
-    const whatsappButton = document.querySelector('.whatsapp-button');
-    if (whatsappButton) {
-        whatsappButton.href = generateWhatsAppLink();
-    }
+    updateWhatsAppLink();
 }
 
 function formatWhatsAppMessage() {
     const baseMessage = "Halo, saya ingin memesan makanan sesuai rekomendasi:";
     const recommendations = [
-        "- Breakfast: Oatmeal with fruits",
-        "- Lunch: Grilled chicken salad",
-        "- Dinner: Salmon with vegetables"
+        "- Breakfast: Oatmeal with fruits and nuts (300 kcal)",
+        "- Lunch: Grilled chicken salad (400 kcal)",
+        "- Dinner: Salmon with vegetables (450 kcal)"
     ].join("\n");
     
     return encodeURIComponent(`${baseMessage}\n\n${recommendations}`);
 }
 
-function generateWhatsAppLink() {
-    return `https://wa.me/+6281275722872?text=${formatWhatsAppMessage()}`;
+function updateWhatsAppLink() {
+    const whatsappButton = document.querySelector('.whatsapp-button');
+    if (whatsappButton) {
+        const message = formatWhatsAppMessage();
+        whatsappButton.href = `https://wa.me/+6281275722872?text=${message}`;
+    }
 }
 
 // Notification System
@@ -63,7 +65,6 @@ function showNotification(message, type = 'success') {
     notification.className = `notification ${type}`;
     notification.textContent = message;
     
-    // Style the notification
     Object.assign(notification.style, {
         position: 'fixed',
         top: '1rem',
@@ -92,35 +93,3 @@ function showNotification(message, type = 'success') {
         }, 300);
     }, 3000);
 }
-
-// Load User Data
-async function loadUserData() {
-    try {
-        const response = await fetch('/api/user-profile', {
-            credentials: 'include'
-        });
-        
-        if (response.ok) {
-            const userData = await response.json();
-            populateProfileForm(userData);
-        }
-    } catch (error) {
-        console.error('Error loading user data:', error);
-    }
-}
-
-function populateProfileForm(userData) {
-    const form = document.getElementById('profileForm');
-    if (!form) return;
-    
-    // Populate form fields
-    for (const [key, value] of Object.entries(userData)) {
-        const input = form.querySelector(`[name="${key}"]`);
-        if (input) {
-            input.value = value;
-        }
-    }
-}
-
-// Initialize on page load
-window.addEventListener('load', loadUserData);
