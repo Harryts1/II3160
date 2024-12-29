@@ -3,170 +3,111 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard - Health Based Dietary Catering</title>
+    <title>Health Based Dietary Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link href="{{ url_for('static', path='/css/main.css') }}" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', path='/css/dashboard.css') }}">
 </head>
-<body class="bg-gray-100 min-h-screen">
+<body class="bg-gray-100">
     <!-- Navigation -->
     <nav class="bg-white shadow-lg">
         <div class="max-w-6xl mx-auto px-4">
-            <div class="flex justify-between">
-                <div class="flex items-center space-x-4">
-                    <!-- Profile Icon with Dropdown -->
-                    <div class="relative">
-                        <button class="p-2 rounded-full hover:bg-gray-100" id="profileButton">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </button>
-                        <!-- Dropdown Menu -->
-                        <div id="profileDropdown" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50">
-                            <div class="py-1">
-                                <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Dashboard</a>
-                                <a href="#" id="editProfileBtn" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">Edit Profile</a>
-                            </div>
-                        </div>
-                    </div>
-                    <span class="font-semibold text-gray-500 text-lg">Health Based Dietary</span>
+            <div class="flex justify-between items-center py-4">
+                <div class="flex items-center">
+                    <span class="font-semibold text-xl text-gray-800">Health Based Dietary</span>
                 </div>
-                <div class="flex items-center space-x-3">
-                    <span class="text-gray-600">Welcome, {{ user.get('name', 'User') }}</span>
-                    <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600 transition">Logout</a>
+                <div class="flex items-center space-x-4">
+                    <span class="text-gray-600">Welcome, <span id="userName">{{ user.get('name', 'User') }}</span></span>
+                    <a href="/logout" class="bg-red-500 text-white px-4 py-2 rounded hover:bg-red-600 transition">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div class="container mx-auto px-4 py-8">
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
             <!-- Profile Section -->
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold mb-4">Your Profile</h2>
+            <div class="profile-section bg-white rounded-lg p-6 shadow-sm">
+                <h2 class="text-2xl font-semibold mb-6">Your Profile</h2>
                 <form id="profileForm" class="space-y-4">
-                    <div>
-                        <label class="block text-gray-700">Phone Number</label>
-                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded" 
-                               value="{{ user_profile.phone if user_profile else '' }}">
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-gray-700 mb-2">Age</label>
+                            <input type="number" name="age" class="form-input">
+                        </div>
+                        <div>
+                            <label class="block text-gray-700 mb-2">Weight (kg)</label>
+                            <input type="number" name="weight" step="0.1" class="form-input">
+                        </div>
                     </div>
-                    
                     <div>
-                        <label class="block text-gray-700">Age</label>
-                        <input type="number" name="age" class="w-full mt-1 p-2 border rounded"
-                               value="{{ user_profile.health_profile.age if user_profile else '' }}">
+                        <label class="block text-gray-700 mb-2">Height (cm)</label>
+                        <input type="number" name="height" class="form-input">
                     </div>
-                    
                     <div>
-                        <label class="block text-gray-700">Weight (kg)</label>
-                        <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded"
-                               value="{{ user_profile.health_profile.weight if user_profile else '' }}">
+                        <label class="block text-gray-700 mb-2">Medical Conditions</label>
+                        <input type="text" name="conditions" placeholder="Separate with commas" class="form-input">
                     </div>
-                    
                     <div>
-                        <label class="block text-gray-700">Height (cm)</label>
-                        <input type="number" name="height" class="w-full mt-1 p-2 border rounded"
-                               value="{{ user_profile.health_profile.height if user_profile else '' }}">
+                        <label class="block text-gray-700 mb-2">Dietary Preferences</label>
+                        <input type="text" name="preferences" placeholder="Separate with commas" class="form-input">
                     </div>
-                    
-                    <div>
-                        <label class="block text-gray-700">Medical Conditions</label>
-                        <input type="text" name="medical_conditions" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded"
-                               value="{{ ','.join(user_profile.health_profile.medical_conditions) if user_profile else '' }}">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-gray-700">Allergies</label>
-                        <input type="text" name="allergies" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded"
-                               value="{{ ','.join(user_profile.health_profile.allergies) if user_profile else '' }}">
-                    </div>
-                    
-                    <div>
-                        <label class="block text-gray-700">Dietary Preferences</label>
-                        <input type="text" name="dietary_preferences" placeholder="Separate with commas" class="w-full mt-1 p-2 border rounded"
-                               value="{{ ','.join(user_profile.health_profile.dietary_preferences) if user_profile else '' }}">
-                    </div>
-                    
-                    <button type="submit" class="w-full bg-blue-500 text-white py-2 px-4 rounded hover:bg-blue-600 transition">
-                        Update Profile
-                    </button>
+                    <button type="submit" class="btn-primary w-full">Update Profile</button>
                 </form>
             </div>
 
-            <!-- Diet Plans Section -->
-            <div class="bg-white p-6 rounded-lg shadow">
-                <h2 class="text-xl font-semibold mb-4">Your Diet Plans</h2>
-                <div class="space-y-4">
-                    <p class="text-gray-600">No active diet plans yet.</p>
-                    <button id="createDietPlan" class="w-full bg-green-500 text-white py-2 px-4 rounded hover:bg-green-600 transition">
-                        Create New Diet Plan
-                    </button>
+            <!-- AI Recommendations Section -->
+            <div class="space-y-6">
+                <h2 class="text-2xl font-semibold">AI Recommendations</h2>
+                <div class="recommendation-card">
+                    <h3 class="text-xl font-semibold mb-4">Today's Menu Suggestions</h3>
+                    <div class="space-y-3">
+                        <div class="p-3 bg-green-50 rounded-lg">
+                            <p class="font-medium text-green-800">Breakfast</p>
+                            <p class="text-green-600">Oatmeal with fruits and nuts (300 kcal)</p>
+                        </div>
+                        <div class="p-3 bg-blue-50 rounded-lg">
+                            <p class="font-medium text-blue-800">Lunch</p>
+                            <p class="text-blue-600">Grilled chicken salad (400 kcal)</p>
+                        </div>
+                        <div class="p-3 bg-purple-50 rounded-lg">
+                            <p class="font-medium text-purple-800">Dinner</p>
+                            <p class="text-purple-600">Salmon with vegetables (450 kcal)</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="recommendation-card">
+                    <h3 class="text-xl font-semibold mb-4">Nutritional Goals</h3>
+                    <div class="grid grid-cols-3 gap-4">
+                        <div class="nutritional-goal">
+                            <p>Calories</p>
+                            <p>2000</p>
+                            <p class="text-sm text-gray-500">kcal/day</p>
+                        </div>
+                        <div class="nutritional-goal">
+                            <p>Protein</p>
+                            <p>75</p>
+                            <p class="text-sm text-gray-500">g/day</p>
+                        </div>
+                        <div class="nutritional-goal">
+                            <p>Water</p>
+                            <p>2.5</p>
+                            <p class="text-sm text-gray-500">L/day</p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
+    </div>
 
-        <!-- WhatsApp Contact Button -->
-        <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20mau%20konsultasi" 
-           class="fixed bottom-6 right-6 bg-green-500 text-white rounded-full p-4 shadow-lg hover:bg-green-600 transition-all z-50">
-            <i class="fab fa-whatsapp text-2xl"></i>
-        </a>
-    </main>
+    <!-- WhatsApp Button -->
+    <a href="#" class="whatsapp-button">
+        <i class="fab fa-whatsapp"></i>
+    </a>
 
     <!-- JavaScript -->
-    <script>
-        // Dropdown handling
-        const profileButton = document.getElementById('profileButton');
-        const profileDropdown = document.getElementById('profileDropdown');
-        let isDropdownOpen = false;
-
-        profileButton.addEventListener('click', () => {
-            isDropdownOpen = !isDropdownOpen;
-            profileDropdown.classList.toggle('hidden');
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!profileButton.contains(e.target) && !profileDropdown.contains(e.target)) {
-                isDropdownOpen = false;
-                profileDropdown.classList.add('hidden');
-            }
-        });
-
-        // Form submission handling
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            
-            try {
-                const response = await fetch('/update-profile', {
-                    method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'include',
-                    body: formData
-                });
-
-                const result = await response.json();
-                
-                if (response.ok) {
-                    alert('Profile updated successfully!');
-                    window.location.reload();
-                } else {
-                    alert(`Failed to update profile: ${result.detail || 'Unknown error'}`);
-                    console.error('Error details:', result);
-                }
-            } catch (error) {
-                console.error('Error:', error);
-                alert('An error occurred while updating profile');
-            }
-        });
-
-        // Create Diet Plan button handling
-        document.getElementById('createDietPlan').addEventListener('click', () => {
-            // Add your diet plan creation logic here
-            alert('Diet plan creation coming soon!');
-        });
-    </script>
+    <script src="{{ url_for('static', path='/js/dashboard.js') }}"></script>
 </body>
 </html>

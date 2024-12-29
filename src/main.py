@@ -87,19 +87,6 @@ class DietPlan(BaseModel):
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
 
-class Order(BaseModel):
-    id: Optional[str] = None
-    user_id: str
-    diet_plan_id: str
-    start_date: datetime
-    duration_days: int
-    meals_per_day: int
-    total_amount: float
-    payment_status: str = "pending"
-    delivery_address: dict
-    special_requests: Optional[str] = None
-    created_at: datetime = datetime.now()
-
 class MenuItem(BaseModel):
     id: Optional[str] = None
     name: str
@@ -146,7 +133,7 @@ async def get_database():
         
         # Ensure collections exist
         collections = await db.list_collection_names()
-        required_collections = ['users', 'menu_items', 'diet_plans', 'consultations', 'orders']
+        required_collections = ['users', 'menu_items', 'diet_plans', 'consultations']
         
         for collection in required_collections:
             if collection not in collections:
@@ -157,7 +144,6 @@ async def get_database():
         await db.menu_items.create_index("name")
         await db.diet_plans.create_index("user_id")
         await db.consultations.create_index("user_id")
-        await db.orders.create_index([("user_id", 1), ("created_at", -1)])
         
         return db
     except Exception as e:
@@ -259,8 +245,7 @@ async def startup_db_client():
             'users', 
             'menu_items', 
             'diet_plans', 
-            'consultations', 
-            'orders'
+            'consultations'
         ]
         
         # Create missing collections
@@ -275,7 +260,6 @@ async def startup_db_client():
         await mongodb_db.menu_items.create_index("name")
         await mongodb_db.diet_plans.create_index("user_id")
         await mongodb_db.consultations.create_index("user_id")
-        await mongodb_db.orders.create_index([("user_id", 1), ("created_at", -1)])
         
         # Verify final state
         final_collections = await mongodb_db.list_collection_names()
@@ -631,18 +615,7 @@ async def create_consultation(consultation: Consultation):
     except Exception as e:
         logger.error(f"Error creating consultation: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/orders/", response_model=Order)
-async def create_order(order: Order):
-    try:
-        order_dict = order.dict()
-        result = await mongodb_db.orders.insert_one(order_dict)
-        order_dict['id'] = str(result.inserted_id)
-        return order_dict
-    except Exception as e:
-        logger.error(f"Error creating order: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
-
+    
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
