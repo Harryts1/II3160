@@ -400,7 +400,7 @@ async def callback(request: Request):
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        return RedirectResponse(url='/', status_code=303)
+        return RedirectResponse(url='/dashboard', status_code=303)
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
         return RedirectResponse(url='/login')
