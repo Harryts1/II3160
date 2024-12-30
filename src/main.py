@@ -293,6 +293,9 @@ async def shutdown_db_client():
         mongodb_client.close()
         logger.info("MongoDB connection closed")
 
+# Setup templates
+templates = Jinja2Templates(directory="frontend")
+
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -482,11 +485,15 @@ async def dashboard(request: Request):
         db = await get_database()
         user_profile = await db.users.find_one({"email": user.get("email")})
         
-        return FileResponse('frontend/dashboard.html')
+        # Render template dengan konteks
+        return templates.TemplateResponse("dashboard.html", {
+            "request": request, 
+            "user": user,
+            "user_profile": user_profile
+        })
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
         return RedirectResponse(url='/')
-
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
