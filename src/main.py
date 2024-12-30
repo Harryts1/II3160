@@ -494,6 +494,7 @@ async def dashboard(request: Request):
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
         return RedirectResponse(url='/')
+    
 @app.get("/logout")
 async def logout(request: Request):
     request.session.clear()
