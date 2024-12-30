@@ -26,6 +26,7 @@ import asyncio
 from pymongo.server_api import ServerApi
 import certifi
 import ssl
+from fastapi.responses import FileResponse
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -292,8 +293,7 @@ async def shutdown_db_client():
         mongodb_client.close()
         logger.info("MongoDB connection closed")
 
-app.mount("/static", StaticFiles(directory="frontend/static"), name="static")
-templates = Jinja2Templates(directory="frontend/templates")
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
 
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -379,8 +379,8 @@ async def get_current_user(request: Request):
 
 # Routes
 @app.get("/", response_class=HTMLResponse)
-async def serve_home(request: Request):
-    return templates.TemplateResponse("index.html", {"request": request})
+async def serve_home():
+    return FileResponse('frontend/index.html')
 
 @app.get("/login")
 async def login(request: Request):
@@ -401,10 +401,10 @@ async def callback(request: Request):
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        return RedirectResponse(url='/dashboard', status_code=303)
+        return FileResponse('frontend/dashboard.html')
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
-        return RedirectResponse(url='/login')
+        return FileResponse('frontend/index.html')
 
 @app.post("/update-profile")
 async def update_profile(request: Request):
@@ -488,13 +488,13 @@ async def dashboard(request: Request):
         user_profile = await db.users.find_one({"email": user.get("email")})
         logger.info(f"Found user profile: {user_profile}")
             
-        return templates.TemplateResponse(
+        return FileResponse('frontend/dashboard.html')(
             "dashboard.html",
             {"request": request, "user": user, "user_profile": user_profile}
         )
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
-        return templates.TemplateResponse(
+        return FileResponse('frontend/index.html')(
             "dashboard.html",
             {"request": request, "user": user, "user_profile": None}
         )
@@ -521,7 +521,7 @@ async def complete_profile(request: Request):
             if db_user and db_user.get('health_profile', {}).get('age', 0) > 0:
                 return RedirectResponse(url='/dashboard')
         
-        return templates.TemplateResponse("complete_profile.html", {
+        return FileResponse('frontend/dashboard.html')("complete_profile.html", {
             "request": request, 
             "user": user
         })
