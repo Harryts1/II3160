@@ -12,49 +12,148 @@
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
     <nav class="bg-white shadow-lg sticky top-0 z-50">
-        <div class="max-w-6xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
                     <div class="relative" id="profileDropdownContainer">
-                        <button class="p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500" id="profileButton">
+                        <button class="p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500" id="profileButton">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                             </svg>
                         </button>
                         <div id="profileDropdown" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 transform transition-all duration-200 opacity-0 scale-95">
                             <div class="py-1">
-                                <a href="/dashboard" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Dashboard</a>
-                                <a href="#profile-section" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Edit Profile</a>
+                                <button onclick="switchTab('dashboard')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Dashboard</button>
+                                <button onclick="switchTab('profile')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Edit Profile</button>
                                 <hr class="my-1">
                                 <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">Logout</a>
                             </div>
                         </div>
                     </div>
-                    <span class="font-semibold text-gray-500 text-lg">Health Based Dietary</span>
+                    <span class="font-semibold text-gray-700 text-lg">Health Based Dietary</span>
                 </div>
                 <div class="flex items-center space-x-3">
                     <span class="text-gray-600" id="welcomeMessage">Welcome, <span class="font-semibold">{{ user.get('name', 'User') }}</span></span>
-                    <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded hover:bg-red-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">Logout</a>
+                    <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
+    <!-- Tabs -->
+    <div class="container mx-auto px-4 pt-6">
+        <div class="border-b border-gray-200">
+            <nav class="flex space-x-8">
+                <button onclick="switchTab('dashboard')" class="tab-button border-b-2 px-4 py-2 text-lg font-medium border-emerald-500 text-emerald-600" data-tab="dashboard">
+                    Dashboard
+                </button>
+                <button onclick="switchTab('profile')" class="tab-button border-b-2 px-4 py-2 text-lg font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="profile">
+                    Profile
+                </button>
+            </nav>
+        </div>
+    </div>
+
     <!-- Main Content -->
     <main class="container mx-auto px-4 py-8">
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Profile Section -->
-            <div id="profile-section" class="bg-white p-6 rounded-lg shadow-lg transition-all hover:shadow-xl">
+        <!-- Dashboard Tab -->
+        <div id="dashboard-tab" class="tab-content">
+            <div class="bg-white rounded-lg shadow-lg p-6">
+                <h2 class="text-2xl font-bold mb-6 text-gray-800">AI Menu Recommendations</h2>
+                
+                <form id="recommendationForm" class="space-y-6">
+                    <!-- Health Goals -->
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">What are your health goals?</label>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                <input type="checkbox" name="goals" value="weight_loss" class="text-emerald-500 mr-3">
+                                <span>Weight Loss</span>
+                            </label>
+                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                <input type="checkbox" name="goals" value="muscle_gain" class="text-emerald-500 mr-3">
+                                <span>Muscle Gain</span>
+                            </label>
+                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                <input type="checkbox" name="goals" value="maintenance" class="text-emerald-500 mr-3">
+                                <span>Maintenance</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Activity Level -->
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">Activity Level</label>
+                        <select name="activity_level" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
+                            <option value="sedentary">Sedentary (little or no exercise)</option>
+                            <option value="light">Lightly active (light exercise 1-3 days/week)</option>
+                            <option value="moderate">Moderately active (moderate exercise 3-5 days/week)</option>
+                            <option value="very">Very active (hard exercise 6-7 days/week)</option>
+                            <option value="extra">Extra active (very hard exercise & physical job)</option>
+                        </select>
+                    </div>
+
+                    <!-- Dietary Restrictions -->
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">Do you have any dietary restrictions?</label>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                <input type="checkbox" name="restrictions" value="vegetarian" class="text-emerald-500 mr-3">
+                                <span>Vegetarian</span>
+                            </label>
+                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                <input type="checkbox" name="restrictions" value="gluten_free" class="text-emerald-500 mr-3">
+                                <span>Gluten Free</span>
+                            </label>
+                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                <input type="checkbox" name="restrictions" value="dairy_free" class="text-emerald-500 mr-3">
+                                <span>Dairy Free</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Health Conditions -->
+                    <div>
+                        <label class="block text-gray-700 font-medium mb-2">Any specific health conditions to consider?</label>
+                        <textarea name="health_conditions" rows="3" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                                placeholder="E.g., diabetes, high blood pressure, etc."></textarea>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
+                        <span class="flex items-center justify-center">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                            Get AI Recommendations
+                        </span>
+                    </button>
+                </form>
+
+                <!-- Recommendations Results -->
+                <div id="recommendationsResult" class="mt-8 hidden">
+                    <h3 class="text-xl font-semibold mb-4">Your Personalized Menu Recommendations</h3>
+                    <div class="space-y-4" id="menuRecommendations">
+                        <!-- Results will be populated here -->
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Profile Tab -->
+        <div id="profile-tab" class="tab-content hidden">
+            <!-- Your existing profile form here -->
+            <div class="bg-white p-6 rounded-lg shadow-lg">
                 <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
                     </svg>
                     Your Profile
                 </h2>
                 <form id="profileForm" class="space-y-4">
+                    <!-- Your existing profile form fields -->
                     <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                         <label class="block text-gray-700 font-medium">Phone Number</label>
-                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500" 
+                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
                                value="{{ user_profile.phone if user_profile else '' }}"
                                placeholder="Enter your phone number">
                     </div>
@@ -62,21 +161,21 @@
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                             <label class="block text-gray-700 font-medium">Age</label>
-                            <input type="number" name="age" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            <input type="number" name="age" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                    value="{{ user_profile.health_profile.age if user_profile else '' }}"
                                    placeholder="Years">
                         </div>
                         
                         <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                             <label class="block text-gray-700 font-medium">Weight (kg)</label>
-                            <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                    value="{{ user_profile.health_profile.weight if user_profile else '' }}"
                                    placeholder="Kilograms">
                         </div>
                         
                         <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                             <label class="block text-gray-700 font-medium">Height (cm)</label>
-                            <input type="number" name="height" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            <input type="number" name="height" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                    value="{{ user_profile.health_profile.height if user_profile else '' }}"
                                    placeholder="Centimeters">
                         </div>
@@ -85,25 +184,25 @@
                     <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                         <label class="block text-gray-700 font-medium">Medical Conditions</label>
                         <input type="text" name="medical_conditions" placeholder="E.g., Diabetes, Hypertension (Separate with commas)" 
-                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                value="{{ ','.join(user_profile.health_profile.medical_conditions) if user_profile and user_profile.health_profile.medical_conditions else '' }}">
                     </div>
                     
                     <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                         <label class="block text-gray-700 font-medium">Allergies</label>
                         <input type="text" name="allergies" placeholder="E.g., Peanuts, Shellfish (Separate with commas)" 
-                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                value="{{ ','.join(user_profile.health_profile.allergies) if user_profile and user_profile.health_profile.allergies else '' }}">
                     </div>
                     
                     <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                         <label class="block text-gray-700 font-medium">Dietary Preferences</label>
                         <input type="text" name="dietary_preferences" placeholder="E.g., Vegetarian, Low-carb (Separate with commas)" 
-                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
                                value="{{ ','.join(user_profile.health_profile.dietary_preferences) if user_profile and user_profile.health_profile.dietary_preferences else '' }}">
                     </div>
                     
-                    <button type="submit" class="w-full bg-blue-500 text-white py-3 px-4 rounded-lg hover:bg-blue-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
                         <span class="flex items-center justify-center">
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
@@ -113,42 +212,63 @@
                     </button>
                 </form>
             </div>
+        </div>
 
-            <!-- Diet Plans Section -->
-            <div class="bg-white p-6 rounded-lg shadow-lg transition-all hover:shadow-xl">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-green-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                    </svg>
-                    Your Diet Plans
-                </h2>
-                <div class="space-y-4">
-                    <div class="text-center py-8">
-                        <img src="/api/placeholder/200/200" alt="No active plans" class="mx-auto mb-4 rounded-lg">
-                        <p class="text-gray-600 mb-6">No active diet plans yet. Create your personalized plan now!</p>
-                        <button id="createDietPlan" class="w-full bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">
-                            <span class="flex items-center justify-center">
-                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" />
-                                </svg>
-                                Create New Diet Plan
-                            </span>
-                        </button>
-                    </div>
+        <!-- Floating Action Buttons -->
+        <div class="fixed bottom-6 right-6 flex flex-col space-y-4">
+            <!-- Info Bubble -->
+            <div class="relative group">
+                <button class="bg-blue-500 text-white rounded-full p-4 shadow-lg hover:bg-blue-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 z-50">
+                    <i class="fas fa-info text-2xl"></i>
+                </button>
+                <!-- Tooltip -->
+                <div class="absolute right-full mr-3 bottom-0 bg-white p-3 rounded-lg shadow-xl w-64 hidden group-hover:block">
+                    <h4 class="font-semibold text-gray-800 mb-2">Need Help?</h4>
+                    <p class="text-gray-600 text-sm">Click for more information about our services and meal plans.</p>
+                </div>
+            </div>
+
+            <!-- WhatsApp Order Button -->
+            <div class="relative group">
+                <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20mau%20pesan%20catering" 
+                   class="bg-green-500 text-white rounded-full p-4 shadow-lg hover:bg-green-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 z-50 flex items-center justify-center">
+                    <i class="fab fa-whatsapp text-2xl"></i>
+                </a>
+                <!-- Tooltip -->
+                <div class="absolute right-full mr-3 bottom-0 bg-white p-3 rounded-lg shadow-xl w-64 hidden group-hover:block">
+                    <h4 class="font-semibold text-gray-800 mb-2">Order Now!</h4>
+                    <p class="text-gray-600 text-sm">Contact us on WhatsApp to place your order or get personalized assistance.</p>
                 </div>
             </div>
         </div>
-
-        <!-- WhatsApp Contact Button -->
-        <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20mau%20konsultasi" 
-           class="fixed bottom-6 right-6 bg-green-500 text-white rounded-full p-4 shadow-lg hover:bg-green-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 z-50">
-            <i class="fab fa-whatsapp text-2xl"></i>
-        </a>
     </main>
 
     <!-- JavaScript -->
     <script>
-        // Dropdown handling with smooth animations
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Update tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                if (button.dataset.tab === tabName) {
+                    button.classList.add('border-emerald-500', 'text-emerald-600');
+                    button.classList.remove('border-transparent', 'text-gray-500');
+                } else {
+                    button.classList.remove('border-emerald-500', 'text-emerald-600');
+                    button.classList.add('border-transparent', 'text-gray-500');
+                }
+            });
+
+            // Show/hide tab content
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.add('hidden');
+            });
+            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+            
+            // Close dropdown if open
+            toggleDropdown(false);
+        }
+
+        // Dropdown handling
         const profileButton = document.getElementById('profileButton');
         const profileDropdown = document.getElementById('profileDropdown');
         const dropdownContainer = document.getElementById('profileDropdownContainer');
@@ -173,13 +293,112 @@
             }
         });
 
-        // Form submission handling with improved feedback
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+        // Handle recommendation form submission
+        document.getElementById('recommendationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const formData = new FormData(e.target);
             const submitButton = e.target.querySelector('button[type="submit"]');
             
             // Disable button and show loading state
+            submitButton.disabled = true;
+            submitButton.innerHTML = `
+                <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+            `;
+            
+            try {
+                const response = await fetch('/recommendations', {
+                    method: 'POST',
+                    headers: {
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(Object.fromEntries(formData))
+                });
+
+                const result = await response.json();
+                
+                if (response.ok) {
+                    // Show recommendations
+                    const recommendationsDiv = document.getElementById('recommendationsResult');
+                    const menuRecommendations = document.getElementById('menuRecommendations');
+                    
+                    menuRecommendations.innerHTML = `
+                        <div class="bg-green-50 p-4 rounded-lg mb-4">
+                            <h4 class="font-semibold text-green-800 mb-2">Nutritional Goals</h4>
+                            <p class="text-green-700">Calories: ${result.nutritionGoals.Calories}</p>
+                            <p class="text-green-700">Protein: ${result.nutritionGoals.Protein}</p>
+                            <p class="text-green-700">Carbs: ${result.nutritionGoals.Carbs}</p>
+                            <p class="text-green-700">Fat: ${result.nutritionGoals.Fat}</p>
+                        </div>
+                        
+                        <div class="space-y-4">
+                            ${result.menuItems.map(item => `
+                                <div class="bg-white p-4 rounded-lg shadow">
+                                    <h5 class="font-semibold text-gray-800">${item.name}</h5>
+                                    <p class="text-gray-600 text-sm">${item.description}</p>
+                                    <p class="text-emerald-600 mt-2">${item.calories} calories</p>
+                                </div>
+                            `).join('')}
+                        </div>
+                        
+                        <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+                            <h4 class="font-semibold text-blue-800 mb-2">Health Advice</h4>
+                            <p class="text-blue-700">${result.healthAdvice}</p>
+                        </div>
+                        
+                        <div class="mt-6">
+                            <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20tertarik%20dengan%20menu%20yang%20direkomendasikan" 
+                               class="inline-flex items-center justify-center w-full bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition-all">
+                                <i class="fab fa-whatsapp mr-2 text-xl"></i>
+                                Order This Menu
+                            </a>
+                        </div>
+                    `;
+                    
+                    recommendationsDiv.classList.remove('hidden');
+                    recommendationsDiv.scrollIntoView({ behavior: 'smooth' });
+                    
+                    Toastify({
+                        text: "Recommendations generated successfully!",
+                        duration: 3000,
+                        gravity: "top",
+                        position: "right",
+                        backgroundColor: "#10B981",
+                    }).showToast();
+                } else {
+                    throw new Error(result.detail || 'Failed to get recommendations');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                Toastify({
+                    text: error.message || "Failed to generate recommendations",
+                    duration: 4000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#EF4444",
+                }).showToast();
+            } finally {
+                submitButton.disabled = false;
+                submitButton.innerHTML = `
+                    <span class="flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                        </svg>
+                        Get AI Recommendations
+                    </span>
+                `;
+            }
+        });
+
+        // Profile form handling
+        document.getElementById('profileForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const formData = new FormData(e.target);
+            const submitButton = e.target.querySelector('button[type="submit"]');
+            
             submitButton.disabled = true;
             submitButton.innerHTML = `
                 <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -201,7 +420,6 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    // Show success notification
                     Toastify({
                         text: "Profile updated successfully!",
                         duration: 3000,
@@ -217,7 +435,6 @@
                 }
             } catch (error) {
                 console.error('Error:', error);
-                // Show error notification
                 Toastify({
                     text: error.message || "An error occurred while updating profile",
                     duration: 4000,
@@ -227,7 +444,6 @@
                     stopOnFocus: true,
                 }).showToast();
             } finally {
-                // Reset button state
                 submitButton.disabled = false;
                 submitButton.innerHTML = `
                     <span class="flex items-center justify-center">
@@ -240,19 +456,7 @@
             }
         });
 
-        // Create Diet Plan button handling with improved feedback
-        document.getElementById('createDietPlan').addEventListener('click', () => {
-            Toastify({
-                text: "Diet plan creation feature coming soon!",
-                duration: 3000,
-                gravity: "top",
-                position: "right",
-                backgroundColor: "#6366F1",
-                stopOnFocus: true,
-            }).showToast();
-        });
-
-        // Input validation and formatting
+        // Input validation
         document.querySelectorAll('input[type="number"]').forEach(input => {
             input.addEventListener('input', (e) => {
                 if (e.target.value < 0) {
@@ -262,13 +466,6 @@
                     e.target.value = Math.floor(Number(e.target.value));
                 }
             });
-        });
-
-        // Smooth scroll to profile section when clicking edit profile
-        document.querySelector('a[href="#profile-section"]').addEventListener('click', (e) => {
-            e.preventDefault();
-            document.getElementById('profile-section').scrollIntoView({ behavior: 'smooth' });
-            toggleDropdown(false);
         });
     </script>
 </body>
