@@ -293,8 +293,6 @@ async def shutdown_db_client():
         mongodb_client.close()
         logger.info("MongoDB connection closed")
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
-
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -378,7 +376,7 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail=str(e))
 
 # Routes
-@app.get("/", response_class=HTMLResponse)
+@app.get("/")
 async def serve_home():
     return FileResponse('frontend/index.html')
 
@@ -657,3 +655,5 @@ async def get_recommendations(request: Request):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
