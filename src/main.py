@@ -387,12 +387,13 @@ async def login(request: Request):
     try:
         return await oauth.auth0.authorize_redirect(
             request,
-            AUTH0_CALLBACK_URL,
+            AUTH0_CALLBACK_URL, 
             prompt="login"
         )
     except Exception as e:
         logger.error(f"Login error: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/callback")
 async def callback(request: Request):
@@ -401,10 +402,10 @@ async def callback(request: Request):
         userinfo = await oauth.auth0.userinfo(token=token)
         request.session['token'] = token['access_token']
         request.session['user'] = dict(userinfo)
-        return FileResponse('frontend/dashboard.html')
+        return RedirectResponse(url='/', status_code=303)
     except Exception as e:
         logger.error(f"Callback error: {str(e)}")
-        return FileResponse('frontend/index.html')
+        return RedirectResponse(url='/login')
 
 @app.post("/update-profile")
 async def update_profile(request: Request):
