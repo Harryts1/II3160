@@ -479,24 +479,13 @@ async def dashboard(request: Request):
         if not user:
             return RedirectResponse(url='/login')
             
-        # Get fresh database connection
         db = await get_database()
-        logger.info("Database connection established for dashboard")
-        
-        # Get user profile
         user_profile = await db.users.find_one({"email": user.get("email")})
-        logger.info(f"Found user profile: {user_profile}")
-            
-        return FileResponse('frontend/dashboard.html')(
-            "dashboard.html",
-            {"request": request, "user": user, "user_profile": user_profile}
-        )
+        
+        return FileResponse('frontend/dashboard.html')
     except Exception as e:
         logger.error(f"Dashboard error: {str(e)}")
-        return FileResponse('frontend/index.html')(
-            "dashboard.html",
-            {"request": request, "user": user, "user_profile": None}
-        )
+        return RedirectResponse(url='/')
 
 @app.get("/logout")
 async def logout(request: Request):
