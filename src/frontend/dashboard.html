@@ -55,7 +55,7 @@
     </div>
 
     <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8 max-w-none">
+    <main class="container mx-auto px-4 py-8">
         <!-- Dashboard Tab -->
         <div id="dashboard-tab" class="tab-content">
             <div class="bg-white rounded-lg shadow-lg p-6">
@@ -138,6 +138,102 @@
                 </div>
             </div>
         </div>
+        <!-- Menu Showcase Section (Tambahkan setelah form rekomendasi) -->
+<div class="mt-12 bg-white rounded-lg shadow-lg p-6">
+    <h2 class="text-2xl font-bold mb-6 text-gray-800">Featured Menu Items</h2>
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <!-- Menu Item 1 -->
+        <div class="relative group overflow-hidden rounded-lg">
+            <img src="/api/placeholder/400/300" alt="Healthy Breakfast Bowl" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <h3 class="text-white font-semibold">Healthy Breakfast Bowl</h3>
+                <p class="text-white/80 text-sm">400 calories</p>
+            </div>
+        </div>
+        
+        <!-- Menu Item 2 -->
+        <div class="relative group overflow-hidden rounded-lg">
+            <img src="/api/placeholder/400/300" alt="Grilled Salmon" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <h3 class="text-white font-semibold">Grilled Salmon</h3>
+                <p class="text-white/80 text-sm">350 calories</p>
+            </div>
+        </div>
+        
+        <!-- Menu Item 3 -->
+        <div class="relative group overflow-hidden rounded-lg">
+            <img src="/api/placeholder/400/300" alt="Vegan Buddha Bowl" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
+            <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                <h3 class="text-white font-semibold">Vegan Buddha Bowl</h3>
+                <p class="text-white/80 text-sm">300 calories</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Nutrition Facts Section -->
+<div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+    <div class="bg-emerald-50 p-6 rounded-lg text-center">
+        <div class="text-emerald-500 text-4xl font-bold mb-2">2000+</div>
+        <div class="text-gray-600">Daily Calories</div>
+    </div>
+    <div class="bg-blue-50 p-6 rounded-lg text-center">
+        <div class="text-blue-500 text-4xl font-bold mb-2">75g</div>
+        <div class="text-gray-600">Protein</div>
+    </div>
+    <div class="bg-purple-50 p-6 rounded-lg text-center">
+        <div class="text-purple-500 text-4xl font-bold mb-2">250g</div>
+        <div class="text-gray-600">Carbs</div>
+    </div>
+    <div class="bg-orange-50 p-6 rounded-lg text-center">
+        <div class="text-orange-500 text-4xl font-bold mb-2">65g</div>
+        <div class="text-gray-600">Healthy Fats</div>
+    </div>
+</div>
+
+<!-- Footer Section -->
+<footer class="mt-12 bg-gray-800 text-white py-12">
+    <div class="container mx-auto px-4">
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Health Based Dietary</h3>
+                <p class="text-gray-400">Your partner in achieving optimal health through personalized nutrition.</p>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                <ul class="space-y-2">
+                    <li><a href="#recommendations" class="text-gray-400 hover:text-white transition">Recommendations</a></li>
+                    <li><a href="#profile" class="text-gray-400 hover:text-white transition">Profile</a></li>
+                    <li><a href="#menu" class="text-gray-400 hover:text-white transition">Menu</a></li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                <ul class="space-y-2">
+                    <li class="text-gray-400">WhatsApp: +62 812-7572-2872</li>
+                    <li class="text-gray-400">Email: harrytrumansuhalim8@gmail.com</li>
+                </ul>
+            </div>
+            <div>
+                <h3 class="text-lg font-semibold mb-4">Follow Us</h3>
+                <div class="flex space-x-4">
+                    <a href="#" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-instagram text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-facebook text-xl"></i>
+                    </a>
+                    <a href="#" class="text-gray-400 hover:text-white transition">
+                        <i class="fab fa-twitter text-xl"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="border-t border-gray-700 mt-8 pt-8 text-center">
+            <p class="text-gray-400">© 2024 Health Based Dietary Catering. All rights reserved.</p>
+        </div>
+    </div>
+</footer>
 
         <!-- Profile Tab -->
         <div id="profile-tab" class="tab-content hidden">
@@ -213,7 +309,7 @@
                 </form>
             </div>
         </div>
-
+        
             <!-- WhatsApp Order Button -->
             <div class="relative group">
                 <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20mau%20pesan%20catering" 
