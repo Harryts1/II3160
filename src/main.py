@@ -627,15 +627,6 @@ if __name__ == "__main__":
 async def get_recommendations(request: Request):
     """
     Generate personalized dietary recommendations using Groq AI.
-    
-    Args:
-        request (Request): FastAPI request object containing user session
-        
-    Returns:
-        dict: Structured dietary recommendations
-        
-    Raises:
-        HTTPException: For authentication or processing errors
     """
     try:
         # Get user from session
@@ -643,7 +634,7 @@ async def get_recommendations(request: Request):
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
-        # Get request body instead of form data
+        # Get request body
         request_data = await request.json()
         logger.info(f"Received request data: {request_data}")
         
@@ -655,16 +646,14 @@ async def get_recommendations(request: Request):
             logger.warning(f"No profile found for user: {user.get('email')}")
             user_profile = {}
         
-        # Add form data to user profile for the prompt
-        user_profile['form_data'] = request_data
-        
-        # Construct prompt for AI
+        # Construct prompt
         prompt = construct_dietary_prompt(user_profile, request_data)
         logger.info(f"Generated prompt: {prompt}")
         
         # Call Groq API
         try:
-            completion = await groq_client.chat.completions.create(
+            # Create the completion request but don't await it yet
+            completion_request = groq_client.chat.completions.create(
                 model="mixtral-8x7b-32768",
                 messages=[
                     {
@@ -684,28 +673,28 @@ async def get_recommendations(request: Request):
                 top_p=1
             )
             
-            # Extract and parse AI response
-            ai_response = completion.choices[0].message.content
-            logger.info(f"Received AI response: {ai_response[:200]}...")  # Log first 200 chars
+            # Now properly await the completion
+            completion = await completion_request
             
-            # Process and structure the AI response
+            # Extract response
+            ai_response = completion.choices[0].message.content
+            logger.info(f"Received AI response: {ai_response[:200]}...")
+            
+            # Process response
             try:
                 structured_response = process_ai_response(ai_response)
             except Exception as e:
                 logger.error(f"Error processing AI response: {str(e)}")
-                # Fallback to default structure if parsing fails
                 structured_response = create_default_recommendations()
-                
-            # Add metadata and timestamp
+            
+            # Add metadata
             final_response = {
                 **structured_response,
                 "generated_at": datetime.now().isoformat(),
                 "version": "1.0"
             }
             
-            # Log successful recommendation generation
             logger.info(f"Generated recommendations for user: {user.get('email')}")
-            
             return final_response
             
         except Exception as e:
