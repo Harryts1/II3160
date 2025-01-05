@@ -28,11 +28,47 @@ import certifi
 import ssl
 from fastapi.responses import FileResponse
 import re
+from typing import Dict, Any
 
 # Initialize Groq
 groq_client = Groq(
     api_key="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"
 )
+
+async def call_groq_api(prompt: str) -> Dict[str, Any]:
+    """
+    Make an async call to the Groq API
+    """
+    url = "https://api.groq.com/openai/v1/chat/completions"
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json"
+    }
+    
+    payload = {
+        "model": "mixtral-8x7b-32768",
+        "messages": [
+            {
+                "role": "system",
+                "content": """You are a professional nutritionist and dietary consultant. 
+                Provide specific, detailed menu recommendations based on the user's health profile 
+                and preferences. Format your response in a structured way with clear sections for 
+                nutritional goals, menu items, and health advice."""
+            },
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 2048,
+        "top_p": 1
+    }
+
+    async with httpx.AsyncClient() as client:
+        response = await client.post(url, json=payload, headers=headers)
+        response.raise_for_status()
+        return response.json()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -650,34 +686,12 @@ async def get_recommendations(request: Request):
         prompt = construct_dietary_prompt(user_profile, request_data)
         logger.info(f"Generated prompt: {prompt}")
         
-        # Call Groq API
         try:
-            # Create the completion request but don't await it yet
-            completion_request = groq_client.chat.completions.create(
-                model="mixtral-8x7b-32768",
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a professional nutritionist and dietary consultant. 
-                        Provide specific, detailed menu recommendations based on the user's health profile 
-                        and preferences. Format your response in a structured way with clear sections for 
-                        nutritional goals, menu items, and health advice."""
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                temperature=0.7,
-                max_tokens=2048,
-                top_p=1
-            )
+            # Call Groq API using our async function
+            response = await call_groq_api(prompt)
             
-            # Now properly await the completion
-            completion = await completion_request
-            
-            # Extract response
-            ai_response = completion.choices[0].message.content
+            # Extract AI response
+            ai_response = response['choices'][0]['message']['content']
             logger.info(f"Received AI response: {ai_response[:200]}...")
             
             # Process response
@@ -697,12 +711,27 @@ async def get_recommendations(request: Request):
             logger.info(f"Generated recommendations for user: {user.get('email')}")
             return final_response
             
+        except httpx.HTTPError as e:
+            logger.error(f"HTTP error occurred: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail=f"Error calling AI service: {str(e)}"
+            )
         except Exception as e:
             logger.error(f"Groq API error: {str(e)}")
             raise HTTPException(
                 status_code=500,
                 detail=f"Error generating recommendations: {str(e)}"
             )
+            
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Unexpected error in get_recommendations: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"An unexpected error occurred: {str(e)}"
+        )
             
     except HTTPException as he:
         raise he
