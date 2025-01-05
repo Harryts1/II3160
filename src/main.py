@@ -144,17 +144,6 @@ class User(BaseModel):
     created_at: datetime = datetime.now()
     updated_at: datetime = datetime.now()
 
-class Consultation(BaseModel):
-    id: Optional[str] = None
-    user_id: str
-    consultation_date: datetime
-    concerns: str
-    diet_goals: List[str]
-    preferred_contact_time: str
-    status: str = "pending"  # pending, completed, cancelled
-    notes: Optional[str] = None
-    created_at: datetime = datetime.now()
-
 class DietPlan(BaseModel):
     id: Optional[str] = None
     user_id: str
@@ -215,7 +204,7 @@ async def get_database():
         
         # Ensure collections exist
         collections = await db.list_collection_names()
-        required_collections = ['users', 'menu_items', 'diet_plans', 'consultations']
+        required_collections = ['users', 'menu_items', 'diet_plans']
         
         for collection in required_collections:
             if collection not in collections:
@@ -225,7 +214,6 @@ async def get_database():
         await db.users.create_index("email", unique=True)
         await db.menu_items.create_index("name")
         await db.diet_plans.create_index("user_id")
-        await db.consultations.create_index("user_id")
         
         return db
     except Exception as e:
@@ -325,7 +313,6 @@ async def startup_db_client():
             'users', 
             'menu_items', 
             'diet_plans', 
-            'consultations'
         ]
         
         # Create missing collections
@@ -339,7 +326,6 @@ async def startup_db_client():
         await mongodb_db.users.create_index("email", unique=True)
         await mongodb_db.menu_items.create_index("name")
         await mongodb_db.diet_plans.create_index("user_id")
-        await mongodb_db.consultations.create_index("user_id")
         
         # Verify final state
         final_collections = await mongodb_db.list_collection_names()
@@ -673,27 +659,6 @@ async def get_user_diet_plans(user_id: str):
         db = await get_database()
         plans = await db.diet_plans.find({"user_id": user_id}).to_list(length=None)
         return plans
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.post("/consultations", response_model=Consultation)
-async def create_consultation(consultation: Consultation, current_user: dict = Depends(get_current_user)):
-    """Create a new consultation request"""
-    try:
-        consultation_dict = consultation.dict()
-        consultation_dict["user_id"] = current_user["sub"]
-        result = await mongodb_db.consultations.insert_one(consultation_dict)
-        return {**consultation_dict, "id": str(result.inserted_id)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/consultations/{user_id}", response_model=List[Consultation])
-async def get_user_consultations(user_id: str):
-    """Get consultations for a specific user"""
-    try:
-        db = await get_database()
-        consultations = await db.consultations.find({"user_id": user_id}).to_list(length=None)
-        return consultations
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
