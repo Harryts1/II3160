@@ -29,6 +29,7 @@ import ssl
 from fastapi.responses import FileResponse
 import re
 from typing import Dict, Any
+from datetime import datetime
 
 # Initialize Groq
 groq_client = None
@@ -245,9 +246,9 @@ async def init_mongodb():
             retryWrites=True,
             retryReads=True,
             ssl=True,
-            ssl_cert_reqs='CERT_NONE',  # WARNING: Use this only for testing
+            ssl_cert_reqs='CERT_NONE',  
             tls=True,
-            tlsAllowInvalidCertificates=True  # WARNING: Use this only for testing
+            tlsAllowInvalidCertificates=True  
         )
         
         # Test connection with longer timeout
@@ -258,8 +259,6 @@ async def init_mongodb():
         
         logger.info("MongoDB connection test successful")
         mongodb_db = mongodb_client.dietary_catering
-        
-        # Rest of your initialization code...
         
         return mongodb_db
     except asyncio.TimeoutError:
@@ -275,6 +274,224 @@ async def init_mongodb():
             detail=f"Database connection failed: {str(e)}"
         )
 
+menu_items = [
+    # BREAKFAST OPTIONS
+    {
+        "name": "Classic Oatmeal Bowl",
+        "description": "Rolled oats with banana, almonds, and honey",
+        "nutrition_info": {
+            "calories": 350,
+            "protein": 12,
+            "carbs": 56,
+            "fat": 11
+        },
+        "price": 35000,
+        "category": "breakfast",
+        "substitutions": {
+            "vegan": "Use plant-based milk and maple syrup instead of honey",
+            "gluten_free": "Use gluten-free certified oats",
+            "protein_boost": "Add protein powder or extra nuts"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    {
+        "name": "Protein Scramble",
+        "description": "Scrambled eggs with spinach, mushrooms, and cheese",
+        "nutrition_info": {
+            "calories": 380,
+            "protein": 25,
+            "carbs": 8,
+            "fat": 28
+        },
+        "price": 45000,
+        "category": "breakfast",
+        "substitutions": {
+            "vegetarian": "Use tofu scramble",
+            "vegan": "Use tofu scramble with nutritional yeast",
+            "dairy_free": "Omit cheese or use dairy-free alternatives"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    
+    # LUNCH OPTIONS
+    {
+        "name": "Grilled Chicken Power Bowl",
+        "description": "Grilled chicken breast with quinoa, roasted vegetables, and tahini dressing",
+        "nutrition_info": {
+            "calories": 450,
+            "protein": 35,
+            "carbs": 42,
+            "fat": 18
+        },
+        "price": 52000,
+        "category": "lunch",
+        "substitutions": {
+            "vegetarian": "Replace chicken with grilled tempeh or tofu",
+            "vegan": "Replace chicken with tempeh and use vegan dressing",
+            "gluten_free": "Already gluten-free"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    {
+        "name": "Mediterranean Salad",
+        "description": "Mixed greens, feta, olives, chickpeas, and grilled fish",
+        "nutrition_info": {
+            "calories": 420,
+            "protein": 28,
+            "carbs": 32,
+            "fat": 22
+        },
+        "price": 48000,
+        "category": "lunch",
+        "substitutions": {
+            "vegetarian": "Replace fish with extra chickpeas and nuts",
+            "vegan": "Remove feta, add avocado",
+            "dairy_free": "Remove feta, add avocado"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    
+    # DINNER OPTIONS
+    {
+        "name": "Baked Salmon with Sweet Potato",
+        "description": "Herb-crusted salmon with mashed sweet potato and steamed broccoli",
+        "nutrition_info": {
+            "calories": 480,
+            "protein": 32,
+            "carbs": 45,
+            "fat": 24
+        },
+        "price": 65000,
+        "category": "dinner",
+        "substitutions": {
+            "vegetarian": "Replace salmon with grilled portobello mushroom",
+            "vegan": "Replace salmon with marinated tempeh",
+            "low_carb": "Replace sweet potato with cauliflower mash"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    {
+        "name": "Lean Turkey Stir-Fry",
+        "description": "Turkey breast strips with mixed vegetables and brown rice",
+        "nutrition_info": {
+            "calories": 410,
+            "protein": 38,
+            "carbs": 40,
+            "fat": 15
+        },
+        "price": 55000,
+        "category": "dinner",
+        "substitutions": {
+            "vegetarian": "Use tofu or tempeh",
+            "vegan": "Use tofu and ensure sauce is vegan",
+            "low_carb": "Replace rice with cauliflower rice"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    
+    # ADDITIONAL VARIATIONS
+    {
+        "name": "High-Protein Yogurt Parfait",
+        "description": "Greek yogurt with mixed berries, granola, and chia seeds",
+        "nutrition_info": {
+            "calories": 320,
+            "protein": 22,
+            "carbs": 38,
+            "fat": 12
+        },
+        "price": 38000,
+        "category": "breakfast",
+        "substitutions": {
+            "vegan": "Use coconut yogurt and ensure granola is vegan",
+            "gluten_free": "Use gluten-free granola",
+            "dairy_free": "Use coconut or almond yogurt"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    },
+    {
+        "name": "Lentil and Quinoa Bowl",
+        "description": "Spiced lentils with quinoa, roasted vegetables, and tahini sauce",
+        "nutrition_info": {
+            "calories": 440,
+            "protein": 18,
+            "carbs": 65,
+            "fat": 16
+        },
+        "price": 45000,
+        "category": "lunch",
+        "substitutions": {
+            "low_carb": "Reduce quinoa portion, add more vegetables",
+            "nut_free": "Use sunflower seeds instead of nuts",
+            "high_protein": "Add grilled chicken or tofu"
+        },
+        "created_at": datetime.now(),
+        "updated_at": datetime.now()
+    }
+]
+
+async def init_menu_items(db):
+    """Initialize menu items in database"""
+    try:
+        # Check if collection exists and is empty
+        if await db.menu_items.count_documents({}) == 0:
+            result = await db.menu_items.insert_many(menu_items)
+            print(f"Inserted {len(result.inserted_ids)} menu items")
+            return {"status": "success", "message": f"Inserted {len(result.inserted_ids)} menu items"}
+        else:
+            print("Menu items collection is not empty, skipping initialization")
+            return {"status": "skipped", "message": "Menu items already exist"}
+    except Exception as e:
+        print(f"Error initializing menu items: {str(e)}")
+        raise e
+
+# Fungsi untuk mendapatkan substitusi menu berdasarkan preferensi diet
+async def get_menu_substitutions(db, menu_item_id, dietary_preferences):
+    """Get menu substitutions based on dietary preferences"""
+    try:
+        menu_item = await db.menu_items.find_one({"_id": menu_item_id})
+        if not menu_item:
+            return None
+            
+        substitutions = []
+        for pref in dietary_preferences:
+            if pref in menu_item.get("substitutions", {}):
+                substitutions.append({
+                    "preference": pref,
+                    "substitution": menu_item["substitutions"][pref]
+                })
+                
+        return substitutions
+    except Exception as e:
+        print(f"Error getting substitutions: {str(e)}")
+        return None
+
+# Fungsi untuk memodifikasi rekomendasi AI berdasarkan preferensi diet
+async def modify_ai_recommendations(db, original_recommendations, dietary_preferences):
+    """Modify AI recommendations based on dietary preferences"""
+    try:
+        modified_recommendations = []
+        for rec in original_recommendations:
+            menu_item = await db.menu_items.find_one({"name": rec["name"]})
+            if menu_item and any(pref in menu_item.get("substitutions", {}) for pref in dietary_preferences):
+                # Add substitution information to recommendation
+                rec["substitutions"] = [
+                    menu_item["substitutions"][pref] 
+                    for pref in dietary_preferences 
+                    if pref in menu_item["substitutions"]
+                ]
+            modified_recommendations.append(rec)
+        return modified_recommendations
+    except Exception as e:
+        print(f"Error modifying recommendations: {str(e)}")
+        return original_recommendations
+    
 # FastAPI Setup
 app = FastAPI(
     title="Health Based Dietary Catering API",
@@ -638,12 +855,14 @@ async def get_users(current_user: dict = Depends(get_current_user)):
 
 @app.get("/menu-items", response_model=List[MenuItem])
 async def get_menu_items():
-    """Get all available menu items"""
+    """Get all menu items"""
     try:
-        menu_items = await mongodb_db.menu_items.find().to_list(length=None)
+        db = await get_database()
+        menu_items = await db.menu_items.find().to_list(length=None)
         return menu_items
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.post("/menu-items", response_model=MenuItem)
 async def create_menu_item(item: MenuItem, current_user: dict = Depends(get_current_user)):
@@ -665,13 +884,12 @@ async def create_diet_plan(plan: DietPlan, current_user: dict = Depends(get_curr
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/diet-plans/user", response_model=List[DietPlan])
-async def get_user_diet_plans(current_user: dict = Depends(get_current_user)):
-    """Get all diet plans for current user"""
+@app.get("/diet-plans/{user_id}", response_model=List[DietPlan])
+async def get_user_diet_plans(user_id: str):
+    """Get diet plans for a specific user"""
     try:
-        plans = await mongodb_db.diet_plans.find(
-            {"user_id": current_user["sub"]}
-        ).to_list(length=None)
+        db = await get_database()
+        plans = await db.diet_plans.find({"user_id": user_id}).to_list(length=None)
         return plans
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -687,37 +905,13 @@ async def create_consultation(consultation: Consultation, current_user: dict = D
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/consultations/user", response_model=List[Consultation])
-async def get_user_consultations(current_user: dict = Depends(get_current_user)):
-    """Get all consultations for current user"""
+@app.get("/consultations/{user_id}", response_model=List[Consultation])
+async def get_user_consultations(user_id: str):
+    """Get consultations for a specific user"""
     try:
-        consultations = await mongodb_db.consultations.find(
-            {"user_id": current_user["sub"]}
-        ).to_list(length=None)
+        db = await get_database()
+        consultations = await db.consultations.find({"user_id": user_id}).to_list(length=None)
         return consultations
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-    
-@app.post("/orders")
-async def create_order(order_data: dict, current_user: dict = Depends(get_current_user)):
-    """Create a new order"""
-    try:
-        order_data["user_id"] = current_user["sub"]
-        order_data["status"] = "pending"
-        order_data["created_at"] = datetime.now()
-        result = await mongodb_db.orders.insert_one(order_data)
-        return {"id": str(result.inserted_id), "status": "success"}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
-
-@app.get("/orders/user")
-async def get_user_orders(current_user: dict = Depends(get_current_user)):
-    """Get all orders for current user"""
-    try:
-        orders = await mongodb_db.orders.find(
-            {"user_id": current_user["sub"]}
-        ).to_list(length=None)
-        return orders
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
