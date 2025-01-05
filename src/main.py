@@ -774,150 +774,178 @@ def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
     prompt_parts.append("3. Detailed health advice based on the profile")
     
     return "\n".join(prompt_parts)
+
 def process_ai_response(ai_response: str) -> dict:
     """Process and structure the AI response into a standardized format."""
-    
     try:
-        # Split response into sections (assuming AI follows the requested format)
-        sections = ai_response.split('\n\n')
+        # Split response into sections based on common headers
+        sections = {}
+        current_section = ''
+        current_content = []
         
-        # Extract nutritional goals
-        nutrition_section = next((s for s in sections if 'calories' in s.lower()), '')
-        nutrition_goals = extract_nutrition_goals(nutrition_section)
-        
-        # Extract menu items
-        menu_section = next((s for s in sections if 'breakfast' in s.lower()), '')
-        menu_items = extract_menu_items(menu_section)
-        
-        # Extract health advice
-        health_section = next((s for s in sections if 'advice' in s.lower()), '')
-        health_advice = health_section.replace('Health Advice:', '').strip()
-        
+        for line in ai_response.split('\n'):
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Identify sections
+            lower_line = line.lower()
+            if 'nutritional goals' in lower_line or 'nutrition goals' in lower_line:
+                current_section = 'nutrition'
+                continue
+            elif 'menu' in lower_line or 'meal plan' in lower_line or 'breakfast' in lower_line:
+                current_section = 'menu'
+                continue
+            elif 'health advice' in lower_line or 'recommendations' in lower_line:
+                current_section = 'advice'
+                continue
+                
+            # Add content to current section
+            if current_section:
+                current_content.append(line)
+                sections[current_section] = current_content
+
+        # Process nutrition goals
+        nutrition_goals = extract_nutrition_goals('\n'.join(sections.get('nutrition', [])))
+
+        # Process menu items
+        menu_items = extract_menu_items('\n'.join(sections.get('menu', [])))
+
+        # Process health advice
+        health_advice = '\n'.join(sections.get('advice', [])).strip()
+        if not health_advice:
+            health_advice = "Based on your profile, focus on regular meals and maintaining a balanced diet that aligns with your goals."
+
         return {
             "nutritionGoals": nutrition_goals,
             "menuItems": menu_items,
             "healthAdvice": health_advice
         }
+        
     except Exception as e:
         logger.error(f"Error processing AI response: {str(e)}")
         return create_default_recommendations()
 
 def extract_nutrition_goals(nutrition_text: str) -> dict:
     """Extract numerical nutrition goals from text."""
-    
-    goals = {
+    try:
+        # Default values
+        goals = {
+            "Calories": "2000 kcal",
+            "Protein": "75g",
+            "Carbs": "250g",
+            "Fat": "65g"
+        }
+        
+        # Look for specific patterns
+        patterns = {
+            'calories': r'(\d+)(?:\s*)?(?:kcal|calories)',
+            'protein': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?protein',
+            'carbs': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?(?:carbs|carbohydrates)',
+            'fat': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?fat'
+        }
+        
+        for key, pattern in patterns.items():
+            match = re.search(pattern, nutrition_text.lower())
+            if match:
+                value = match.group(1)
+                if key == 'calories':
+                    goals["Calories"] = f"{value} kcal"
+                elif key == 'protein':
+                    goals["Protein"] = f"{value}g"
+                elif key == 'carbs':
+                    goals["Carbs"] = f"{value}g"
+                elif key == 'fat':
+                    goals["Fat"] = f"{value}g"
+                    
+        return goals
+        
+    except Exception as e:
+        logger.error(f"Error extracting nutrition goals: {str(e)}")
+        return create_default_nutrition_goals()
+
+def extract_menu_items(menu_text: str) -> list:
+    """Extract menu items and structure them."""
+    try:
+        menu_items = []
+        current_item = None
+        
+        lines = menu_text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check for meal headers
+            lower_line = line.lower()
+            if any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:', 'snack:']):
+                if current_item:
+                    menu_items.append(current_item)
+                    
+                # Extract calories if present
+                calories_match = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', line.lower())
+                calories = calories_match.group(1) if calories_match else "300"
+                
+                current_item = {
+                    "name": line.split(':')[0] + ': ' + line.split(':')[1].strip(),
+                    "calories": f"{calories} calories",
+                    "description": "Balanced nutritional profile"
+                }
+            elif current_item:
+                # Add line as part of description
+                if 'description' in current_item:
+                    current_item['description'] += f" {line}"
+                else:
+                    current_item['description'] = line
+                    
+        # Add last item
+        if current_item:
+            menu_items.append(current_item)
+            
+        # If no items were found, create default items
+        if not menu_items:
+            menu_items = create_default_menu_items()
+            
+        return menu_items
+        
+    except Exception as e:
+        logger.error(f"Error extracting menu items: {str(e)}")
+        return create_default_menu_items()
+
+def create_default_recommendations() -> dict:
+    """Create default recommendations."""
+    return {
+        "nutritionGoals": create_default_nutrition_goals(),
+        "menuItems": create_default_menu_items(),
+        "healthAdvice": "Focus on maintaining a balanced diet with regular meals throughout the day."
+    }
+
+def create_default_nutrition_goals() -> dict:
+    """Create default nutrition goals."""
+    return {
         "Calories": "2000 kcal",
         "Protein": "75g",
         "Carbs": "250g",
         "Fat": "65g"
     }
-    
-    try:
-        # Look for patterns like "1800 calories" or "70g protein"
-        import re
-        
-        calories = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', nutrition_text.lower())
-        if calories:
-            goals["Calories"] = f"{calories.group(1)} kcal"
-            
-        protein = re.search(r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?protein', nutrition_text.lower())
-        if protein:
-            goals["Protein"] = f"{protein.group(1)}g"
-            
-        carbs = re.search(r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?(?:carbs|carbohydrates)', nutrition_text.lower())
-        if carbs:
-            goals["Carbs"] = f"{carbs.group(1)}g"
-            
-        fat = re.search(r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?fat', nutrition_text.lower())
-        if fat:
-            goals["Fat"] = f"{fat.group(1)}g"
-            
-    except Exception as e:
-        logger.warning(f"Error extracting nutrition goals: {str(e)}")
-        
-    return goals
-
-def extract_menu_items(menu_text: str) -> list:
-    """Extract menu items from text and structure them."""
-    
-    try:
-        menu_items = []
-        meals = ['breakfast', 'lunch', 'dinner']
-        
-        for meal in meals:
-            # Look for meal section in text
-            meal_pattern = re.compile(f'{meal}:.*?(?={"|".join(meals)}|$)', re.I | re.S)
-            meal_match = meal_pattern.search(menu_text)
-            
-            if meal_match:
-                meal_text = meal_match.group(0).strip()
-                # Extract calories if present
-                calories_match = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', meal_text.lower())
-                calories = calories_match.group(1) if calories_match else "300"
-                
-                menu_items.append({
-                    "name": f"{meal.title()}: {meal_text.split(':')[1].strip() if ':' in meal_text else meal_text}",
-                    "calories": calories,
-                    "description": generate_description(meal_text)
-                })
-                
-        return menu_items
-    except Exception as e:
-        logger.error(f"Error extracting menu items: {str(e)}")
-        return create_default_menu_items()
-
-def generate_description(meal_text: str) -> str:
-    """Generate a descriptive text for a meal based on its contents."""
-    
-    keywords = {
-        'protein': 'High in protein',
-        'fiber': 'Rich in fiber',
-        'vitamin': 'Vitamin-rich',
-        'omega': 'Contains healthy fats',
-        'antioxidant': 'Rich in antioxidants',
-        'whole grain': 'Contains whole grains',
-        'vegetable': 'Packed with vegetables'
-    }
-    
-    descriptions = [value for key, value in keywords.items() 
-                   if key in meal_text.lower()]
-    
-    if descriptions:
-        return ', '.join(descriptions)
-    return "Balanced nutritional profile"
-
-def create_default_recommendations() -> dict:
-    """Create default recommendations when AI processing fails."""
-    
-    return {
-        "nutritionGoals": {
-            "Calories": "2000 kcal",
-            "Protein": "75g",
-            "Carbs": "250g",
-            "Fat": "65g"
-        },
-        "menuItems": create_default_menu_items(),
-        "healthAdvice": "Focus on maintaining a balanced diet with regular meals throughout the day. Include a variety of fruits, vegetables, lean proteins, and whole grains."
-    }
 
 def create_default_menu_items() -> list:
-    """Create default menu items when processing fails."""
-    
+    """Create default menu items."""
     return [
         {
             "name": "Breakfast: Oatmeal with fruits and nuts",
-            "calories": "300",
+            "calories": "300 calories",
             "description": "Rich in fiber and healthy fats"
         },
         {
-            "name": "Lunch: Grilled chicken salad with mixed greens",
-            "calories": "400",
-            "description": "High in protein, low in calories"
+            "name": "Lunch: Quinoa and vegetable bowl",
+            "calories": "400 calories",
+            "description": "High in protein and nutrients"
         },
         {
-            "name": "Dinner: Baked salmon with quinoa and vegetables",
-            "calories": "450",
-            "description": "Rich in omega-3 and protein"
+            "name": "Dinner: Grilled vegetables with tofu",
+            "calories": "350 calories",
+            "description": "Plant-based protein with essential nutrients"
         }
     ]
 
