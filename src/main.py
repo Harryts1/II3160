@@ -36,50 +36,24 @@ groq_client = Groq(
 )
 
 async def call_groq_api(prompt: str) -> Dict[str, Any]:
-    """Make an async call to the Groq API with improved formatting."""
+    """
+    Make an async call to the Groq API
+    """
     url = "https://api.groq.com/openai/v1/chat/completions"
     headers = {
         "Authorization": f"Bearer {GROQ_API_KEY}",
         "Content-Type": "application/json"
     }
     
-    system_prompt = """You are a professional dietary catering consultant. Provide menu recommendations 
-    in the following format:
-
-    1. Nutritional Goals
-    - Daily calories
-    - Protein
-    - Carbs
-    - Fat
-
-    2. Menu Recommendations
-    Breakfast:
-    - [Name of dish] (calories)
-    Brief description focusing on key ingredients and benefits
-
-    Lunch:
-    - [Name of dish] (calories)
-    Brief description focusing on key ingredients and benefits
-
-    Dinner:
-    - [Name of dish] (calories)
-    Brief description focusing on key ingredients and benefits
-
-    3. Health Advice
-    Please provide health advice in clear bullet points:
-    • Daily nutrition targets
-    • Exercise recommendations
-    • Hydration guidelines
-    • General wellness tips
-
-    Keep descriptions concise and focused on what the customer needs to know."""
-    
     payload = {
         "model": "mixtral-8x7b-32768",
         "messages": [
             {
                 "role": "system",
-                "content": system_prompt
+                "content": """You are a professional nutritionist and dietary consultant. 
+                Provide specific, detailed menu recommendations based on the user's health profile 
+                and preferences. Format your response in a structured way with clear sections for 
+                nutritional goals, menu items, and health advice."""
             },
             {
                 "role": "user",
@@ -803,8 +777,9 @@ def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
     return "\n".join(prompt_parts)
 
 def process_ai_response(ai_response: str) -> dict:
-    """Process and structure the AI response with improved formatting."""
+    """Process and structure the AI response into a standardized format."""
     try:
+        # Split response into sections based on common headers
         sections = {}
         current_section = ''
         current_content = []
@@ -816,40 +791,36 @@ def process_ai_response(ai_response: str) -> dict:
                 
             # Identify sections
             lower_line = line.lower()
-            if any(header in lower_line for header in ['nutritional goals', 'nutrition targets']):
+            if 'nutritional goals' in lower_line or 'nutrition goals' in lower_line:
                 current_section = 'nutrition'
                 continue
-            elif any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:']):
-                if 'menu' not in sections:
-                    sections['menu'] = []
+            elif 'menu' in lower_line or 'meal plan' in lower_line or 'breakfast' in lower_line:
                 current_section = 'menu'
-                sections['menu'].append(line)
                 continue
-            elif 'health advice' in lower_line:
+            elif 'health advice' in lower_line or 'recommendations' in lower_line:
                 current_section = 'advice'
                 continue
                 
             # Add content to current section
-            if current_section == 'menu':
-                sections['menu'].append(line)
-            elif current_section == 'advice':
-                if line.startswith('•') or line.startswith('-'):
-                    current_content.append(line.lstrip('•- ').strip())
-                elif current_content:
-                    current_content[-1] += f" {line}"
-                else:
-                    current_content.append(line)
-            
-        # Process health advice into bullet points
-        health_advice = []
-        for point in current_content:
-            if point:
-                health_advice.append(f"• {point}")
+            if current_section:
+                current_content.append(line)
+                sections[current_section] = current_content
+
+        # Process nutrition goals
+        nutrition_goals = extract_nutrition_goals('\n'.join(sections.get('nutrition', [])))
+
+        # Process menu items
+        menu_items = extract_menu_items('\n'.join(sections.get('menu', [])))
+
+        # Process health advice
+        health_advice = '\n'.join(sections.get('advice', [])).strip()
+        if not health_advice:
+            health_advice = "Based on your profile, focus on regular meals and maintaining a balanced diet that aligns with your goals."
 
         return {
-            "nutritionGoals": extract_nutrition_goals(ai_response),
-            "menuItems": extract_menu_items(sections.get('menu', [])),
-            "healthAdvice": "\n".join(health_advice)
+            "nutritionGoals": nutrition_goals,
+            "menuItems": menu_items,
+            "healthAdvice": health_advice
         }
         
     except Exception as e:
@@ -894,31 +865,43 @@ def extract_nutrition_goals(nutrition_text: str) -> dict:
         logger.error(f"Error extracting nutrition goals: {str(e)}")
         return create_default_nutrition_goals()
 
-def extract_menu_items(menu_lines: list) -> list:
-    """Extract menu items with improved formatting."""
-    menu_items = []
-    current_item = None
-    
-    for line in menu_lines:
-        if any(meal in line.lower() for meal in ['breakfast:', 'lunch:', 'dinner:']):
-            if current_item:
-                menu_items.append(current_item)
+def extract_menu_items(menu_text: str) -> list:
+    """Extract simplified menu items for catering service."""
+    try:
+        menu_items = []
+        current_meal = None
+        
+        lines = menu_text.split('\n')
+        for line in lines:
+            line = line.strip()
+            if not line:
+                continue
+                
+            # Check for meal headers
+            lower_line = line.lower()
+            if any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:', 'snack:']):
+                meal_name = line.split(':')[0].strip()
+                meal_desc = line.split(':')[1].strip() if ':' in line else ''
+                
+                # Extract calories if present
+                calories_match = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', lower_line)
+                calories = calories_match.group(1) if calories_match else "400"
+                
+                menu_items.append({
+                    "name": f"{meal_name}: {meal_desc}",
+                    "calories": f"{calories} calories",
+                    "description": "Balanced nutritional profile suitable for your dietary needs"
+                })
+        
+        # If no items were found, use defaults
+        if not menu_items:
+            menu_items = create_default_menu_items()
             
-            meal_name = line.split(':')[0].strip()
-            desc = line.split(':')[1].strip() if ':' in line else ''
-            
-            current_item = {
-                "name": f"{meal_name}: {desc}",
-                "calories": "400 calories",
-                "description": "Balanced meal with essential nutrients"
-            }
-        elif current_item and line:
-            current_item['description'] = line.strip()
-    
-    if current_item:
-        menu_items.append(current_item)
-    
-    return menu_items if menu_items else create_default_menu_items()
+        return menu_items
+        
+    except Exception as e:
+        logger.error(f"Error extracting menu items: {str(e)}")
+        return create_default_menu_items()
 
 def create_default_recommendations() -> dict:
     """Create default recommendations."""
