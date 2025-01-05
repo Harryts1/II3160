@@ -636,60 +636,89 @@ async def get_users(current_user: dict = Depends(get_current_user)):
         logger.error(f"Error fetching users: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/menu_items", response_model=MenuItem)
-async def create_menu_item(menu_item: MenuItem, current_user: dict = Depends(get_current_user)):
-    """
-    Create a new menu item.
-    Requires authentication.
-    """
+@app.get("/menu-items", response_model=List[MenuItem])
+async def get_menu_items():
+    """Get all available menu items"""
     try:
-        menu_dict = menu_item.dict()
-        result = await mongodb_db.menu_items.insert_one(menu_dict)
-        menu_dict['id'] = str(result.inserted_id)
-        return menu_dict
+        menu_items = await mongodb_db.menu_items.find().to_list(length=None)
+        return menu_items
     except Exception as e:
-        logger.error(f"Error creating menu item: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.get("/menu_items/{menu_item_id}", response_model=MenuItem)
-async def get_menu_item(menu_item_id: str, current_user: dict = Depends(get_current_user)):
-    """
-    Get menu item by ID.
-    Requires authentication.
-    """
+@app.post("/menu-items", response_model=MenuItem)
+async def create_menu_item(item: MenuItem, current_user: dict = Depends(get_current_user)):
+    """Create new menu item (admin only)"""
     try:
-        item = await mongodb_db.menu_items.find_one({"_id": menu_item_id})
-        if item:
-            item['id'] = str(item['_id'])
-            del item['_id']
-            return item
-        raise HTTPException(status_code=404, detail="Menu item not found")
+        result = await mongodb_db.menu_items.insert_one(item.dict())
+        return {**item.dict(), "id": str(result.inserted_id)}
     except Exception as e:
-        logger.error(f"Error fetching menu item: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/diet-plans", response_model=DietPlan)
-async def create_diet_plan(diet_plan: DietPlan, current_user: dict = Depends(get_current_user)):
+async def create_diet_plan(plan: DietPlan, current_user: dict = Depends(get_current_user)):
+    """Create a new diet plan for user"""
     try:
-        diet_plan_dict = diet_plan.dict()
-        recommendation = recommendation(diet_plan)
-        diet_plan_dict['recommended_by_ai'] = True
-        result = await mongodb_db.diet_plans.insert_one(diet_plan_dict)
-        diet_plan_dict['id'] = str(result.inserted_id)
-        return diet_plan_dict
+        plan_dict = plan.dict()
+        plan_dict["user_id"] = current_user["sub"]
+        result = await mongodb_db.diet_plans.insert_one(plan_dict)
+        return {**plan_dict, "id": str(result.inserted_id)}
     except Exception as e:
-        logger.error(f"Error creating diet plan: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/consultations/", response_model=Consultation)
-async def create_consultation(consultation: Consultation):
+@app.get("/diet-plans/user", response_model=List[DietPlan])
+async def get_user_diet_plans(current_user: dict = Depends(get_current_user)):
+    """Get all diet plans for current user"""
+    try:
+        plans = await mongodb_db.diet_plans.find(
+            {"user_id": current_user["sub"]}
+        ).to_list(length=None)
+        return plans
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/consultations", response_model=Consultation)
+async def create_consultation(consultation: Consultation, current_user: dict = Depends(get_current_user)):
+    """Create a new consultation request"""
     try:
         consultation_dict = consultation.dict()
+        consultation_dict["user_id"] = current_user["sub"]
         result = await mongodb_db.consultations.insert_one(consultation_dict)
-        consultation_dict['id'] = str(result.inserted_id)
-        return consultation_dict
+        return {**consultation_dict, "id": str(result.inserted_id)}
     except Exception as e:
-        logger.error(f"Error creating consultation: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/consultations/user", response_model=List[Consultation])
+async def get_user_consultations(current_user: dict = Depends(get_current_user)):
+    """Get all consultations for current user"""
+    try:
+        consultations = await mongodb_db.consultations.find(
+            {"user_id": current_user["sub"]}
+        ).to_list(length=None)
+        return consultations
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    
+@app.post("/orders")
+async def create_order(order_data: dict, current_user: dict = Depends(get_current_user)):
+    """Create a new order"""
+    try:
+        order_data["user_id"] = current_user["sub"]
+        order_data["status"] = "pending"
+        order_data["created_at"] = datetime.now()
+        result = await mongodb_db.orders.insert_one(order_data)
+        return {"id": str(result.inserted_id), "status": "success"}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/orders/user")
+async def get_user_orders(current_user: dict = Depends(get_current_user)):
+    """Get all orders for current user"""
+    try:
+        orders = await mongodb_db.orders.find(
+            {"user_id": current_user["sub"]}
+        ).to_list(length=None)
+        return orders
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
     
 if __name__ == "__main__":
