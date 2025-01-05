@@ -2,7 +2,6 @@ from fastapi import FastAPI, HTTPException, Depends, Request, Response, Security
 from pydantic import BaseModel
 from typing import List, Dict, Optional
 from groq import Groq
-from groq.types import ChatCompletion
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
@@ -662,29 +661,28 @@ async def get_recommendations(request: Request):
         
         # Call Groq API
         try:
-            chat_completion = groq_client.chat.completions.create(
-                messages=[
-                    {
-                        "role": "system",
-                        "content": """You are a professional nutritionist and dietary consultant. 
-                        Provide specific, detailed menu recommendations based on the user's health profile 
-                        and preferences. Format your response in a structured way with clear sections for 
-                        nutritional goals, menu items, and health advice."""
-                    },
-                    {
-                        "role": "user",
-                        "content": prompt
-                    }
-                ],
-                model="mixtral-8x7b-32768",
-                temperature=0.7,
-                max_tokens=2048,
-                top_p=1,
-                stream=False
-            )
+            completion = await groq_client.chat.completions.create(
+            model="mixtral-8x7b-32768",
+            messages=[
+                {
+                    "role": "system",
+                    "content": """You are a professional nutritionist and dietary consultant. 
+                    Provide specific, detailed menu recommendations based on the user's health profile 
+                    and preferences. Format your response in a structured way with clear sections for 
+                    nutritional goals, menu items, and health advice."""
+                },
+                {
+                    "role": "user",
+                    "content": prompt
+                }
+            ],
+            temperature=0.7,
+            max_tokens=2048,
+            top_p=1
+        )
             
             # Extract and parse AI response
-            ai_response = chat_completion.choices[0].message.content
+            ai_response = completion.choices[0].message.content
             
             # Process and structure the AI response
             try:
