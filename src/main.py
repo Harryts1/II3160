@@ -29,7 +29,7 @@ import ssl
 from fastapi.responses import FileResponse
 import re
 from typing import Dict, Any
-from datetime import datetime
+import random
 
 # Initialize Groq
 groq_client = None
@@ -274,224 +274,6 @@ async def init_mongodb():
             detail=f"Database connection failed: {str(e)}"
         )
 
-menu_items = [
-    # BREAKFAST OPTIONS
-    {
-        "name": "Classic Oatmeal Bowl",
-        "description": "Rolled oats with banana, almonds, and honey",
-        "nutrition_info": {
-            "calories": 350,
-            "protein": 12,
-            "carbs": 56,
-            "fat": 11
-        },
-        "price": 35000,
-        "category": "breakfast",
-        "substitutions": {
-            "vegan": "Use plant-based milk and maple syrup instead of honey",
-            "gluten_free": "Use gluten-free certified oats",
-            "protein_boost": "Add protein powder or extra nuts"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    {
-        "name": "Protein Scramble",
-        "description": "Scrambled eggs with spinach, mushrooms, and cheese",
-        "nutrition_info": {
-            "calories": 380,
-            "protein": 25,
-            "carbs": 8,
-            "fat": 28
-        },
-        "price": 45000,
-        "category": "breakfast",
-        "substitutions": {
-            "vegetarian": "Use tofu scramble",
-            "vegan": "Use tofu scramble with nutritional yeast",
-            "dairy_free": "Omit cheese or use dairy-free alternatives"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    
-    # LUNCH OPTIONS
-    {
-        "name": "Grilled Chicken Power Bowl",
-        "description": "Grilled chicken breast with quinoa, roasted vegetables, and tahini dressing",
-        "nutrition_info": {
-            "calories": 450,
-            "protein": 35,
-            "carbs": 42,
-            "fat": 18
-        },
-        "price": 52000,
-        "category": "lunch",
-        "substitutions": {
-            "vegetarian": "Replace chicken with grilled tempeh or tofu",
-            "vegan": "Replace chicken with tempeh and use vegan dressing",
-            "gluten_free": "Already gluten-free"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    {
-        "name": "Mediterranean Salad",
-        "description": "Mixed greens, feta, olives, chickpeas, and grilled fish",
-        "nutrition_info": {
-            "calories": 420,
-            "protein": 28,
-            "carbs": 32,
-            "fat": 22
-        },
-        "price": 48000,
-        "category": "lunch",
-        "substitutions": {
-            "vegetarian": "Replace fish with extra chickpeas and nuts",
-            "vegan": "Remove feta, add avocado",
-            "dairy_free": "Remove feta, add avocado"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    
-    # DINNER OPTIONS
-    {
-        "name": "Baked Salmon with Sweet Potato",
-        "description": "Herb-crusted salmon with mashed sweet potato and steamed broccoli",
-        "nutrition_info": {
-            "calories": 480,
-            "protein": 32,
-            "carbs": 45,
-            "fat": 24
-        },
-        "price": 65000,
-        "category": "dinner",
-        "substitutions": {
-            "vegetarian": "Replace salmon with grilled portobello mushroom",
-            "vegan": "Replace salmon with marinated tempeh",
-            "low_carb": "Replace sweet potato with cauliflower mash"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    {
-        "name": "Lean Turkey Stir-Fry",
-        "description": "Turkey breast strips with mixed vegetables and brown rice",
-        "nutrition_info": {
-            "calories": 410,
-            "protein": 38,
-            "carbs": 40,
-            "fat": 15
-        },
-        "price": 55000,
-        "category": "dinner",
-        "substitutions": {
-            "vegetarian": "Use tofu or tempeh",
-            "vegan": "Use tofu and ensure sauce is vegan",
-            "low_carb": "Replace rice with cauliflower rice"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    
-    # ADDITIONAL VARIATIONS
-    {
-        "name": "High-Protein Yogurt Parfait",
-        "description": "Greek yogurt with mixed berries, granola, and chia seeds",
-        "nutrition_info": {
-            "calories": 320,
-            "protein": 22,
-            "carbs": 38,
-            "fat": 12
-        },
-        "price": 38000,
-        "category": "breakfast",
-        "substitutions": {
-            "vegan": "Use coconut yogurt and ensure granola is vegan",
-            "gluten_free": "Use gluten-free granola",
-            "dairy_free": "Use coconut or almond yogurt"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    },
-    {
-        "name": "Lentil and Quinoa Bowl",
-        "description": "Spiced lentils with quinoa, roasted vegetables, and tahini sauce",
-        "nutrition_info": {
-            "calories": 440,
-            "protein": 18,
-            "carbs": 65,
-            "fat": 16
-        },
-        "price": 45000,
-        "category": "lunch",
-        "substitutions": {
-            "low_carb": "Reduce quinoa portion, add more vegetables",
-            "nut_free": "Use sunflower seeds instead of nuts",
-            "high_protein": "Add grilled chicken or tofu"
-        },
-        "created_at": datetime.now(),
-        "updated_at": datetime.now()
-    }
-]
-
-async def init_menu_items(db):
-    """Initialize menu items in database"""
-    try:
-        # Check if collection exists and is empty
-        if await db.menu_items.count_documents({}) == 0:
-            result = await db.menu_items.insert_many(menu_items)
-            print(f"Inserted {len(result.inserted_ids)} menu items")
-            return {"status": "success", "message": f"Inserted {len(result.inserted_ids)} menu items"}
-        else:
-            print("Menu items collection is not empty, skipping initialization")
-            return {"status": "skipped", "message": "Menu items already exist"}
-    except Exception as e:
-        print(f"Error initializing menu items: {str(e)}")
-        raise e
-
-# Fungsi untuk mendapatkan substitusi menu berdasarkan preferensi diet
-async def get_menu_substitutions(db, menu_item_id, dietary_preferences):
-    """Get menu substitutions based on dietary preferences"""
-    try:
-        menu_item = await db.menu_items.find_one({"_id": menu_item_id})
-        if not menu_item:
-            return None
-            
-        substitutions = []
-        for pref in dietary_preferences:
-            if pref in menu_item.get("substitutions", {}):
-                substitutions.append({
-                    "preference": pref,
-                    "substitution": menu_item["substitutions"][pref]
-                })
-                
-        return substitutions
-    except Exception as e:
-        print(f"Error getting substitutions: {str(e)}")
-        return None
-
-# Fungsi untuk memodifikasi rekomendasi AI berdasarkan preferensi diet
-async def modify_ai_recommendations(db, original_recommendations, dietary_preferences):
-    """Modify AI recommendations based on dietary preferences"""
-    try:
-        modified_recommendations = []
-        for rec in original_recommendations:
-            menu_item = await db.menu_items.find_one({"name": rec["name"]})
-            if menu_item and any(pref in menu_item.get("substitutions", {}) for pref in dietary_preferences):
-                # Add substitution information to recommendation
-                rec["substitutions"] = [
-                    menu_item["substitutions"][pref] 
-                    for pref in dietary_preferences 
-                    if pref in menu_item["substitutions"]
-                ]
-            modified_recommendations.append(rec)
-        return modified_recommendations
-    except Exception as e:
-        print(f"Error modifying recommendations: {str(e)}")
-        return original_recommendations
-    
 # FastAPI Setup
 app = FastAPI(
     title="Health Based Dietary Catering API",
@@ -921,20 +703,12 @@ if __name__ == "__main__":
 
 @app.post("/recommendations")
 async def get_recommendations(request: Request):
-    """
-    Generate personalized dietary recommendations using Groq AI.
-    """
     try:
-        # Get user from session
         user = request.session.get('user')
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
-        # Get request body
         request_data = await request.json()
-        logger.info(f"Received request data: {request_data}")
-        
-        # Get user profile from database
         db = await get_database()
         user_profile = await db.users.find_one({"email": user.get("email")})
         
@@ -942,65 +716,46 @@ async def get_recommendations(request: Request):
             logger.warning(f"No profile found for user: {user.get('email')}")
             user_profile = {}
         
-        # Construct prompt
+        # Get AI recommendation for nutritional goals and health advice
         prompt = construct_dietary_prompt(user_profile, request_data)
-        logger.info(f"Generated prompt: {prompt}")
+        response = await call_groq_api(prompt)
+        ai_response = response['choices'][0]['message']['content']
         
-        try:
-            # Call Groq API using our async function
-            response = await call_groq_api(prompt)
-            
-            # Extract AI response
-            ai_response = response['choices'][0]['message']['content']
-            logger.info(f"Received AI response: {ai_response[:200]}...")
-            
-            # Process response
-            try:
-                structured_response = process_ai_response(ai_response)
-            except Exception as e:
-                logger.error(f"Error processing AI response: {str(e)}")
-                structured_response = create_default_recommendations()
-            
-            # Add metadata
-            final_response = {
-                **structured_response,
-                "generated_at": datetime.now().isoformat(),
-                "version": "1.0"
-            }
-            
-            logger.info(f"Generated recommendations for user: {user.get('email')}")
-            return final_response
-            
-        except httpx.HTTPError as e:
-            logger.error(f"HTTP error occurred: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error calling AI service: {str(e)}"
-            )
-        except Exception as e:
-            logger.error(f"Groq API error: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail=f"Error generating recommendations: {str(e)}"
-            )
-            
-    except HTTPException as he:
-        raise he
-    except Exception as e:
-        logger.error(f"Unexpected error in get_recommendations: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"An unexpected error occurred: {str(e)}"
+        # Extract nutritional goals and health advice
+        nutrition_goals = extract_nutrition_goals(ai_response)
+        health_advice = extract_health_advice(ai_response)
+        
+        # Get menu items from database
+        menu_items = await extract_menu_items(
+            db, 
+            ['breakfast', 'lunch', 'dinner'],
+            request_data.get('restrictions', [])
         )
-            
-    except HTTPException as he:
-        raise he
+        
+        final_response = {
+            "nutritionGoals": nutrition_goals,
+            "menuItems": menu_items,
+            "healthAdvice": health_advice,
+            "generated_at": datetime.now().isoformat(),
+            "version": "1.0"
+        }
+        
+        # Save recommendation to diet_plans
+        diet_plan = {
+            "user_id": user.get('email'),
+            "recommendations": final_response,
+            "restrictions": request_data.get('restrictions', []),
+            "goals": request_data.get('goals', []),
+            "created_at": datetime.now()
+        }
+        
+        await db.diet_plans.insert_one(diet_plan)
+        
+        return final_response
+        
     except Exception as e:
-        logger.error(f"Unexpected error in get_recommendations: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail=f"An unexpected error occurred: {str(e)}"
-        )
+        logger.error(f"Error in recommendations: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
     """Construct a prompt focused on catering menu recommendations."""
@@ -1036,12 +791,57 @@ def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
     
     return "\n".join(prompt_parts)
 
-def process_ai_response(ai_response: str) -> dict:
-    """Process and structure the AI response with improved formatting."""
+async def extract_menu_items(db, menu_categories: list, dietary_restrictions: list = None) -> list:
+    """Extract menu items from database based on categories and restrictions."""
     try:
-        sections = {}
+        menu_items = []
+        for category in menu_categories:  # ['breakfast', 'lunch', 'dinner']
+            # Get menu items for this category
+            query = {"category": category}
+            category_items = await db.menu_items.find(query).to_list(length=None)
+            
+            if category_items:
+                # Select one random item from available items
+                selected_item = random.choice(category_items)
+                menu_items.append({
+                    "name": f"{category.title()}: {selected_item['name']}",
+                    "calories": selected_item['nutrition_info']['calories'],
+                    "description": selected_item['description']
+                })
+            
+        return menu_items
+    except Exception as e:
+        logger.error(f"Error extracting menu items: {str(e)}")
+        raise e
+
+def extract_health_advice(ai_response: str) -> str:
+    """Extract health advice from AI response."""
+    try:
+        # Find health advice section
+        sections = ai_response.split('\n')
+        health_advice = []
+        in_advice_section = False
+        
+        for line in sections:
+            if 'health advice' in line.lower():
+                in_advice_section = True
+                continue
+            
+            if in_advice_section and line.strip():
+                if line.startswith('•') or line.startswith('-'):
+                    health_advice.append(line.strip())
+        
+        return '\n'.join(health_advice) if health_advice else "• Maintain a balanced diet with regular meals\n• Stay hydrated\n• Exercise regularly"
+        
+    except Exception as e:
+        logger.error(f"Error extracting health advice: {str(e)}")
+        return "• Maintain a balanced diet with regular meals\n• Stay hydrated\n• Exercise regularly"
+    
+def process_ai_response(ai_response: str) -> dict:
+    """Process and structure the AI response."""
+    try:
+        sections = {'menu': []}
         current_section = ''
-        current_content = []
         health_advice_points = []
         
         # Split response into lines
@@ -1052,37 +852,23 @@ def process_ai_response(ai_response: str) -> dict:
             if not line:
                 continue
                 
-            # Identify sections
             lower_line = line.lower()
-            if any(header in lower_line for header in ['nutritional goals', 'nutrition targets']):
-                current_section = 'nutrition'
-            elif any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:']):
-                if 'menu' not in sections:
-                    sections['menu'] = []
-                current_section = 'menu'
+            if any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:']):
                 sections['menu'].append(line)
-            elif any(header in lower_line for header in ['health advice', 'health recommendations', 'recommendations:']):
+            elif any(header in lower_line for header in ['health advice', 'recommendations:']):
                 current_section = 'advice'
                 continue
             elif current_section == 'advice':
-                # Check if line starts with bullet point or number
-                if line.startswith('•') or line.startswith('-') or re.match(r'^\d+\.', line):
-                    health_advice_points.append(line.lstrip('•- 1234567890.').strip())
-                elif line:  # If it's a continuation of previous point
-                    if health_advice_points:
-                        health_advice_points[-1] += f" {line}"
-                    else:
-                        health_advice_points.append(line)
-            elif current_section == 'menu':
-                sections['menu'].append(line)
-
+                if line.startswith('•') or line.startswith('-'):
+                    health_advice_points.append(line.lstrip('•- ').strip())
+        
         # Format health advice with bullet points
         formatted_advice = []
         for point in health_advice_points:
             if point and len(point.strip()) > 0:
                 formatted_advice.append(f"• {point.strip()}")
         
-        # If no health advice was found, add default advice
+        # If no health advice was found, use default advice
         if not formatted_advice:
             formatted_advice = [
                 "• Maintain consistent meal timing for optimal metabolism",
@@ -1090,7 +876,7 @@ def process_ai_response(ai_response: str) -> dict:
                 "• Consider moderate exercise 3-4 times per week",
                 "• Monitor your portion sizes and eat mindfully"
             ]
-
+        
         return {
             "nutritionGoals": extract_nutrition_goals(ai_response),
             "menuItems": extract_menu_items(sections.get('menu', [])),
@@ -1099,7 +885,33 @@ def process_ai_response(ai_response: str) -> dict:
         
     except Exception as e:
         logger.error(f"Error processing AI response: {str(e)}")
-        return create_default_recommendations()
+        # Return default recommendations directly instead of calling a separate function
+        return {
+            "nutritionGoals": {
+                "Calories": "1800 kcal",
+                "Protein": "70g",
+                "Carbs": "220g",
+                "Fat": "60g"
+            },
+            "menuItems": [
+                {
+                    "name": "Breakfast: Healthy Morning Bowl",
+                    "calories": "350 calories",
+                    "description": "A nutritious breakfast option with whole grains and fresh fruits"
+                },
+                {
+                    "name": "Lunch: Fresh Garden Plate",
+                    "calories": "450 calories",
+                    "description": "A balanced mix of vegetables and lean protein"
+                },
+                {
+                    "name": "Dinner: Light Evening Meal",
+                    "calories": "400 calories",
+                    "description": "Light and nutritious dinner option"
+                }
+            ],
+            "healthAdvice": "• Maintain consistent meal timing\n• Stay hydrated\n• Exercise regularly"
+        }
 
 def extract_nutrition_goals(nutrition_text: str) -> dict:
     """Extract numerical nutrition goals from text."""
@@ -1139,39 +951,45 @@ def extract_nutrition_goals(nutrition_text: str) -> dict:
         logger.error(f"Error extracting nutrition goals: {str(e)}")
         return create_default_nutrition_goals()
 
-def extract_menu_items(menu_lines: list) -> list:
-    """Extract menu items with improved formatting."""
-    menu_items = []
-    current_item = None
+async def extract_menu_items(db, menu_categories: list, dietary_restrictions: list = None) -> list:
+    """Extract menu items from database based on categories."""
+    try:
+        menu_items = []
+        for category in ['breakfast', 'lunch', 'dinner']:
+            # Get menu items for this category
+            query = {"category": category}
+            cursor = db.menu_items.find(query)
+            category_items = await cursor.to_list(length=None)
+            
+            if category_items:
+                # Select one item randomly
+                selected_item = random.choice(category_items)
+                menu_items.append({
+                    "name": f"{category.title()}: {selected_item['name']}",
+                    "calories": f"{selected_item['nutrition_info']['calories']} calories",
+                    "description": selected_item['description']
+                })
     
-    for line in menu_lines:
-        if any(meal in line.lower() for meal in ['breakfast:', 'lunch:', 'dinner:']):
-            if current_item:
-                menu_items.append(current_item)
-            
-            meal_name = line.split(':')[0].strip()
-            desc = line.split(':')[1].strip() if ':' in line else ''
-            
-            current_item = {
-                "name": f"{meal_name}: {desc}",
+        return menu_items if menu_items else [
+            {
+                "name": "Breakfast: Healthy Breakfast Bowl",
+                "calories": "350 calories",
+                "description": "Nutritious breakfast with whole grains and fresh fruits"
+            },
+            {
+                "name": "Lunch: Garden Fresh Plate",
+                "calories": "450 calories", 
+                "description": "Balanced lunch with lean protein and vegetables"
+            },
+            {
+                "name": "Dinner: Light Evening Meal",
                 "calories": "400 calories",
-                "description": "Balanced meal with essential nutrients"
+                "description": "Light and nutritious dinner option"
             }
-        elif current_item and line:
-            current_item['description'] = line.strip()
-    
-    if current_item:
-        menu_items.append(current_item)
-    
-    return menu_items if menu_items else create_default_menu_items()
-
-def create_default_recommendations() -> dict:
-    """Create default recommendations."""
-    return {
-        "nutritionGoals": create_default_nutrition_goals(),
-        "menuItems": create_default_menu_items(),
-        "healthAdvice": "Focus on maintaining a balanced diet with regular meals throughout the day."
-    }
+        ]
+    except Exception as e:
+        logger.error(f"Error extracting menu items: {str(e)}")
+        raise e
 
 def create_default_nutrition_goals() -> dict:
     """Create default nutrition goals."""
@@ -1182,24 +1000,5 @@ def create_default_nutrition_goals() -> dict:
         "Fat": "60g"
     }
 
-def create_default_menu_items() -> list:
-    """Create default catering menu items."""
-    return [
-        {
-            "name": "Breakfast: Wholesome Morning Bowl",
-            "calories": "400 calories",
-            "description": "A nutritious breakfast option with whole grains and fresh fruits"
-        },
-        {
-            "name": "Lunch: Garden Fresh Plate",
-            "calories": "500 calories",
-            "description": "A balanced mix of vegetables and plant-based proteins"
-        },
-        {
-            "name": "Dinner: Evening Wellness Meal",
-            "calories": "450 calories",
-            "description": "Light and nutritious dinner option"
-        }
-    ]
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
