@@ -808,8 +808,12 @@ def process_ai_response(ai_response: str) -> dict:
         sections = {}
         current_section = ''
         current_content = []
+        health_advice_points = []
         
-        for line in ai_response.split('\n'):
+        # Split response into lines
+        lines = ai_response.split('\n')
+        
+        for line in lines:
             line = line.strip()
             if not line:
                 continue
@@ -818,38 +822,45 @@ def process_ai_response(ai_response: str) -> dict:
             lower_line = line.lower()
             if any(header in lower_line for header in ['nutritional goals', 'nutrition targets']):
                 current_section = 'nutrition'
-                continue
             elif any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:']):
                 if 'menu' not in sections:
                     sections['menu'] = []
                 current_section = 'menu'
                 sections['menu'].append(line)
-                continue
-            elif 'health advice' in lower_line:
+            elif any(header in lower_line for header in ['health advice', 'health recommendations', 'recommendations:']):
                 current_section = 'advice'
                 continue
-                
-            # Add content to current section
-            if current_section == 'menu':
-                sections['menu'].append(line)
             elif current_section == 'advice':
-                if line.startswith('•') or line.startswith('-'):
-                    current_content.append(line.lstrip('•- ').strip())
-                elif current_content:
-                    current_content[-1] += f" {line}"
-                else:
-                    current_content.append(line)
-            
-        # Process health advice into bullet points
-        health_advice = []
-        for point in current_content:
-            if point:
-                health_advice.append(f"• {point}")
+                # Check if line starts with bullet point or number
+                if line.startswith('•') or line.startswith('-') or re.match(r'^\d+\.', line):
+                    health_advice_points.append(line.lstrip('•- 1234567890.').strip())
+                elif line:  # If it's a continuation of previous point
+                    if health_advice_points:
+                        health_advice_points[-1] += f" {line}"
+                    else:
+                        health_advice_points.append(line)
+            elif current_section == 'menu':
+                sections['menu'].append(line)
+
+        # Format health advice with bullet points
+        formatted_advice = []
+        for point in health_advice_points:
+            if point and len(point.strip()) > 0:
+                formatted_advice.append(f"• {point.strip()}")
+        
+        # If no health advice was found, add default advice
+        if not formatted_advice:
+            formatted_advice = [
+                "• Maintain consistent meal timing for optimal metabolism",
+                "• Stay hydrated by drinking at least 8 glasses of water daily",
+                "• Consider moderate exercise 3-4 times per week",
+                "• Monitor your portion sizes and eat mindfully"
+            ]
 
         return {
             "nutritionGoals": extract_nutrition_goals(ai_response),
             "menuItems": extract_menu_items(sections.get('menu', [])),
-            "healthAdvice": "\n".join(health_advice)
+            "healthAdvice": "\n".join(formatted_advice)
         }
         
     except Exception as e:
