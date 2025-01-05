@@ -6,7 +6,6 @@
     <title>Dashboard - Health Based Dietary Catering</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
@@ -15,316 +14,268 @@
         <div class="max-w-7xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <div class="flex items-center space-x-4">
-                    <div class="relative" id="profileDropdownContainer">
-                        <button class="p-2 rounded-full hover:bg-gray-100 focus:outline-none focus:ring-2 focus:ring-emerald-500" id="profileButton">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                            </svg>
-                        </button>
-                        <div id="profileDropdown" class="hidden absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 transform transition-all duration-200 opacity-0 scale-95">
-                            <div class="py-1">
-                                <button onclick="switchTab('dashboard')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Dashboard</button>
-                                <button onclick="switchTab('profile')" class="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 transition-colors">Edit Profile</button>
-                                <hr class="my-1">
-                                <a href="/logout" class="block px-4 py-2 text-sm text-red-600 hover:bg-red-50 transition-colors">Logout</a>
-                            </div>
-                        </div>
-                    </div>
                     <span class="font-semibold text-gray-700 text-lg">Health Based Dietary</span>
                 </div>
                 <div class="flex items-center space-x-3">
-                    <span class="text-gray-600" id="welcomeMessage">Welcome, <span class="font-semibold">{{ user.get('name', 'User') }}</span></span>
-                    <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2">Logout</a>
+                    <span class="text-gray-600">Welcome, <span class="font-semibold">{{ user.get('name', 'User') }}</span></span>
+                    <a href="/logout" class="py-2 px-4 bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all">Logout</a>
                 </div>
             </div>
         </div>
     </nav>
 
-    <!-- Tabs -->
-    <div class="container mx-auto px-4 pt-6">
-        <div class="border-b border-gray-200">
-            <nav class="flex space-x-8">
-                <button onclick="switchTab('dashboard')" class="tab-button border-b-2 px-4 py-2 text-lg font-medium border-emerald-500 text-emerald-600" data-tab="dashboard">
+    <!-- Main Content -->
+    <main class="container mx-auto px-4 py-8">
+        <!-- Tabs -->
+        <div class="mb-8">
+            <nav class="flex space-x-8 border-b">
+                <button onclick="switchTab('dashboard')" class="tab-button px-4 py-2 border-b-2 border-emerald-500 text-emerald-600 font-medium">
                     Dashboard
                 </button>
-                <button onclick="switchTab('profile')" class="tab-button border-b-2 px-4 py-2 text-lg font-medium border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300" data-tab="profile">
+                <button onclick="switchTab('profile')" class="tab-button px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
                     Profile
                 </button>
             </nav>
         </div>
-    </div>
 
-    <!-- Main Content -->
-    <main class="container mx-auto px-4 py-8">
         <!-- Dashboard Tab -->
         <div id="dashboard-tab" class="tab-content">
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">AI Menu Recommendations</h2>
-                
-                <form id="recommendationForm" class="space-y-6">
-                    <!-- Health Goals -->
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-2">What are your health goals?</label>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                                <input type="checkbox" name="goals" value="weight_loss" class="text-emerald-500 mr-3">
-                                <span>Weight Loss</span>
-                            </label>
-                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                                <input type="checkbox" name="goals" value="muscle_gain" class="text-emerald-500 mr-3">
-                                <span>Muscle Gain</span>
-                            </label>
-                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                                <input type="checkbox" name="goals" value="maintenance" class="text-emerald-500 mr-3">
-                                <span>Maintenance</span>
-                            </label>
+
+                <div id="recommendations-form">
+                    <form id="recommendationForm" class="space-y-6">
+                        <!-- Health Goals -->
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">What are your health goals?</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                    <input type="checkbox" name="goals" value="weight_loss" class="text-emerald-500 mr-3">
+                                    <span>Weight Loss</span>
+                                </label>
+                                <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                    <input type="checkbox" name="goals" value="muscle_gain" class="text-emerald-500 mr-3">
+                                    <span>Muscle Gain</span>
+                                </label>
+                                <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                    <input type="checkbox" name="goals" value="maintenance" class="text-emerald-500 mr-3">
+                                    <span>Maintenance</span>
+                                </label>
+                            </div>
                         </div>
-                    </div>
 
-                    <!-- Activity Level -->
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-2">Activity Level</label>
-                        <select name="activity_level" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500">
-                            <option value="sedentary">Sedentary (little or no exercise)</option>
-                            <option value="light">Lightly active (light exercise 1-3 days/week)</option>
-                            <option value="moderate">Moderately active (moderate exercise 3-5 days/week)</option>
-                            <option value="very">Very active (hard exercise 6-7 days/week)</option>
-                            <option value="extra">Extra active (very hard exercise & physical job)</option>
-                        </select>
-                    </div>
-
-                    <!-- Dietary Restrictions -->
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-2">Do you have any dietary restrictions?</label>
-                        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                                <input type="checkbox" name="restrictions" value="vegetarian" class="text-emerald-500 mr-3">
-                                <span>Vegetarian</span>
-                            </label>
-                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                                <input type="checkbox" name="restrictions" value="gluten_free" class="text-emerald-500 mr-3">
-                                <span>Gluten Free</span>
-                            </label>
-                            <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
-                                <input type="checkbox" name="restrictions" value="dairy_free" class="text-emerald-500 mr-3">
-                                <span>Dairy Free</span>
-                            </label>
+                        <!-- Activity Level -->
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Activity Level</label>
+                            <select name="activity_level" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500">
+                                <option value="sedentary">Sedentary (little or no exercise)</option>
+                                <option value="light">Lightly active (1-3 days/week)</option>
+                                <option value="moderate">Moderately active (3-5 days/week)</option>
+                                <option value="very">Very active (6-7 days/week)</option>
+                                <option value="extra">Extra active (very hard exercise & physical job)</option>
+                            </select>
                         </div>
-                    </div>
 
-                    <!-- Health Conditions -->
-                    <div>
-                        <label class="block text-gray-700 font-medium mb-2">Any specific health conditions to consider?</label>
-                        <textarea name="health_conditions" rows="3" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
-                                placeholder="E.g., diabetes, high blood pressure, etc."></textarea>
-                    </div>
+                        <!-- Dietary Restrictions -->
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Do you have any dietary restrictions?</label>
+                            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                    <input type="checkbox" name="restrictions" value="vegetarian" class="text-emerald-500 mr-3">
+                                    <span>Vegetarian</span>
+                                </label>
+                                <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                    <input type="checkbox" name="restrictions" value="gluten_free" class="text-emerald-500 mr-3">
+                                    <span>Gluten Free</span>
+                                </label>
+                                <label class="flex items-center p-4 border rounded-lg hover:shadow-md transition-all cursor-pointer">
+                                    <input type="checkbox" name="restrictions" value="dairy_free" class="text-emerald-500 mr-3">
+                                    <span>Dairy Free</span>
+                                </label>
+                            </div>
+                        </div>
 
-                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                        <span class="flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                            </svg>
-                            Get AI Recommendations
-                        </span>
-                    </button>
-                </form>
+                        <!-- Health Conditions -->
+                        <div>
+                            <label class="block text-gray-700 font-medium mb-2">Any specific health conditions to consider?</label>
+                            <textarea name="health_conditions" rows="3" class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
+                                    placeholder="E.g., diabetes, high blood pressure, etc."></textarea>
+                        </div>
 
-                <!-- Recommendations Results -->
-                <div id="recommendationsResult" class="mt-8 hidden">
-                    <h3 class="text-xl font-semibold mb-4">Your Personalized Menu Recommendations</h3>
-                    <div class="space-y-4" id="menuRecommendations">
-                        <!-- Results will be populated here -->
+                        <button type="submit" id="submitButton" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all">
+                            <span class="flex items-center justify-center" id="buttonContent">
+                                <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                                </svg>
+                                Get AI Recommendations
+                            </span>
+                        </button>
+                    </form>
+
+                    <!-- Results Section -->
+                    <div id="recommendationsResult" class="mt-8 hidden">
+                        <h3 class="text-xl font-semibold mb-4">Your Personalized Menu Recommendations</h3>
+                        <div id="menuRecommendations" class="space-y-4">
+                            <!-- Results will be populated here -->
+                        </div>
                     </div>
                 </div>
             </div>
-            <!-- Menu Showcase Section (Tambahkan setelah form rekomendasi) -->
+
+            <!-- Featured Menu Section -->
             <div class="mt-12 bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">Featured Menu Items</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <!-- Menu Item 1 -->
-                <div class="relative group overflow-hidden rounded-lg">
-                    <img src="image/HB.jpg" alt="Healthy Breakfast Bowl" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <h3 class="text-white font-semibold">Healthy Breakfast Bowl</h3>
-                        <p class="text-white/80 text-sm">400 calories</p>
+                    <!-- Menu Items -->
+                    <div class="relative group overflow-hidden rounded-lg">
+                        <img src="/api/placeholder/400/320" alt="Healthy Breakfast Bowl" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                            <h3 class="text-white font-semibold">Healthy Breakfast Bowl</h3>
+                            <p class="text-white/80 text-sm">400 calories</p>
+                        </div>
+                    </div>
+
+                    <div class="relative group overflow-hidden rounded-lg">
+                        <img src="/api/placeholder/400/320" alt="Grilled Salmon" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                            <h3 class="text-white font-semibold">Grilled Salmon</h3>
+                            <p class="text-white/80 text-sm">350 calories</p>
+                        </div>
+                    </div>
+
+                    <div class="relative group overflow-hidden rounded-lg">
+                        <img src="/api/placeholder/400/320" alt="Vegan Buddha Bowl" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
+                        <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
+                            <h3 class="text-white font-semibold">Vegan Buddha Bowl</h3>
+                            <p class="text-white/80 text-sm">300 calories</p>
+                        </div>
                     </div>
                 </div>
-        
-            <!-- Menu Item 2 -->
-                <div class="relative group overflow-hidden rounded-lg">
-                    <img src="image/GS.png" alt="Grilled Salmon" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <h3 class="text-white font-semibold">Grilled Salmon</h3>
-                        <p class="text-white/80 text-sm">350 calories</p>
-                </div>
             </div>
-        
-            <!-- Menu Item 3 -->
-                <div class="relative group overflow-hidden rounded-lg">
-                    <img src="image/VBB.jpg" alt="Vegan Buddha Bowl" class="w-full h-48 object-cover rounded-lg transform group-hover:scale-105 transition-transform duration-300">
-                    <div class="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/70 to-transparent p-4">
-                        <h3 class="text-white font-semibold">Vegan Buddha Bowl</h3>
-                        <p class="text-white/80 text-sm">300 calories</p>
-                </div>
-            </div>
-        </div>
-    </div>
 
-<!-- Nutrition Facts Section -->
-<div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
-    <div class="bg-emerald-50 p-6 rounded-lg text-center">
-        <div class="text-emerald-500 text-4xl font-bold mb-2">2000+</div>
-        <div class="text-gray-600">Daily Calories</div>
-    </div>
-    <div class="bg-blue-50 p-6 rounded-lg text-center">
-        <div class="text-blue-500 text-4xl font-bold mb-2">75g</div>
-        <div class="text-gray-600">Protein</div>
-    </div>
-    <div class="bg-purple-50 p-6 rounded-lg text-center">
-        <div class="text-purple-500 text-4xl font-bold mb-2">250g</div>
-        <div class="text-gray-600">Carbs</div>
-    </div>
-    <div class="bg-orange-50 p-6 rounded-lg text-center">
-        <div class="text-orange-500 text-4xl font-bold mb-2">65g</div>
-        <div class="text-gray-600">Healthy Fats</div>
-    </div>
-</div>
+            <!-- Nutrition Facts Section -->
+            <div class="mt-12 grid grid-cols-1 md:grid-cols-4 gap-6">
+                <div class="bg-emerald-50 p-6 rounded-lg text-center">
+                    <div class="text-emerald-500 text-4xl font-bold mb-2">2000+</div>
+                    <div class="text-gray-600">Daily Calories</div>
+                </div>
+                <div class="bg-blue-50 p-6 rounded-lg text-center">
+                    <div class="text-blue-500 text-4xl font-bold mb-2">75g</div>
+                    <div class="text-gray-600">Protein</div>
+                </div>
+                <div class="bg-purple-50 p-6 rounded-lg text-center">
+                    <div class="text-purple-500 text-4xl font-bold mb-2">250g</div>
+                    <div class="text-gray-600">Carbs</div>
+                </div>
+                <div class="bg-orange-50 p-6 rounded-lg text-center">
+                    <div class="text-orange-500 text-4xl font-bold mb-2">65g</div>
+                    <div class="text-gray-600">Healthy Fats</div>
+                </div>
+            </div>
         </div>
 
         <!-- Profile Tab -->
         <div id="profile-tab" class="tab-content hidden">
-            <!-- Your existing profile form here -->
             <div class="bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-xl font-semibold mb-4 flex items-center">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 mr-2 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                    </svg>
-                    Your Profile
-                </h2>
+                <h2 class="text-xl font-semibold mb-4">Your Profile</h2>
                 <form id="profileForm" class="space-y-4">
-                    <!-- Your existing profile form fields -->
+                    <!-- Profile form fields -->
                     <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                         <label class="block text-gray-700 font-medium">Phone Number</label>
-                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500" 
+                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                                value="{{ user_profile.phone if user_profile else '' }}"
                                placeholder="Enter your phone number">
                     </div>
-                    
+
                     <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                             <label class="block text-gray-700 font-medium">Age</label>
-                            <input type="number" name="age" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            <input type="number" name="age" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                                    value="{{ user_profile.health_profile.age if user_profile else '' }}"
                                    placeholder="Years">
                         </div>
-                        
+
                         <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                             <label class="block text-gray-700 font-medium">Weight (kg)</label>
-                            <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                                    value="{{ user_profile.health_profile.weight if user_profile else '' }}"
                                    placeholder="Kilograms">
                         </div>
-                        
+
                         <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
                             <label class="block text-gray-700 font-medium">Height (cm)</label>
-                            <input type="number" name="height" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
+                            <input type="number" name="height" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
                                    value="{{ user_profile.health_profile.height if user_profile else '' }}"
                                    placeholder="Centimeters">
                         </div>
                     </div>
-                    
-                    <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                        <label class="block text-gray-700 font-medium">Medical Conditions</label>
-                        <input type="text" name="medical_conditions" placeholder="E.g., Diabetes, Hypertension (Separate with commas)" 
-                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                               value="{{ ','.join(user_profile.health_profile.medical_conditions) if user_profile and user_profile.health_profile.medical_conditions else '' }}">
-                    </div>
-                    
-                    <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                        <label class="block text-gray-700 font-medium">Allergies</label>
-                        <input type="text" name="allergies" placeholder="E.g., Peanuts, Shellfish (Separate with commas)" 
-                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                               value="{{ ','.join(user_profile.health_profile.allergies) if user_profile and user_profile.health_profile.allergies else '' }}">
-                    </div>
-                    
-                    <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                        <label class="block text-gray-700 font-medium">Dietary Preferences</label>
-                        <input type="text" name="dietary_preferences" placeholder="E.g., Vegetarian, Low-carb (Separate with commas)" 
-                               class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500 focus:border-emerald-500"
-                               value="{{ ','.join(user_profile.health_profile.dietary_preferences) if user_profile and user_profile.health_profile.dietary_preferences else '' }}">
-                    </div>
-                    
-                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-2">
-                        <span class="flex items-center justify-center">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                            </svg>
-                            Update Profile
-                        </span>
+
+                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all">
+                        Update Profile
                     </button>
                 </form>
             </div>
         </div>
-        
-            <!-- WhatsApp Button -->
-            <div class="fixed bottom-6 right-6">
-                <div class="relative group">
-                <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20mau%20pesan%20catering" 
-                    class="bg-green-500 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-green-600 transition-all transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2 z-50">
-                    <i class="fab fa-whatsapp text-3xl"></i>
-                </a>
+    </main>
+
+    <!-- WhatsApp Button -->
+    <div class="fixed bottom-6 right-6">
+        <div class="relative group">
+            <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20mau%20pesan%20catering" 
+               class="bg-green-500 text-white rounded-full w-14 h-14 flex items-center justify-center shadow-lg hover:bg-green-600 transition-all transform hover:scale-110">
+                <i class="fab fa-whatsapp text-3xl"></i>
+            </a>
             <!-- Tooltip -->
-            <div class="absolute right-full mr-3 bottom-0 hidden group-hover:block bg-white text-gray-800 p-3 rounded-lg shadow-xl w-64 transition-all">
+            <div class="absolute right-full mr-3 bottom-0 hidden group-hover:block bg-white text-gray-800 p-3 rounded-lg shadow-xl w-64">
                 <h4 class="font-semibold mb-1">Chat with us!</h4>
                 <p class="text-sm text-gray-600">For further information and order, please contact us on WhatsApp</p>
             </div>
         </div>
     </div>
-    </main>
 
-    <!-- Footer Section -->
-<footer class="mt-12 bg-gray-800 text-white py-12">
-    <div class="container mx-auto px-4">
-        <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
-            <div>
-                <h3 class="text-lg font-semibold mb-4">Health Based Dietary</h3>
-                <p class="text-gray-400">Your partner in achieving optimal health through personalized nutrition.</p>
-            </div>
-            <div>
-                <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
-                <ul class="space-y-2">
-                    <li><a href="#recommendations" class="text-gray-400 hover:text-white transition">Recommendations</a></li>
-                    <li><a href="#profile" class="text-gray-400 hover:text-white transition">Profile</a></li>
-                    <li><a href="#menu" class="text-gray-400 hover:text-white transition">Menu</a></li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="text-lg font-semibold mb-4">Contact</h3>
-                <ul class="space-y-2">
-                    <li class="text-gray-400">WhatsApp: +62 812-7572-2872</li>
-                    <li class="text-gray-400">Email: harrytrumansuhalim8@gmail.com</li>
-                </ul>
-            </div>
-            <div>
-                <h3 class="text-lg font-semibold mb-4">Follow Us</h3>
-                <div class="flex space-x-4">
-                    <a href="#" class="text-gray-400 hover:text-white transition">
-                        <i class="fab fa-instagram text-xl"></i>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-white transition">
-                        <i class="fab fa-facebook text-xl"></i>
-                    </a>
-                    <a href="#" class="text-gray-400 hover:text-white transition">
-                        <i class="fab fa-twitter text-xl"></i>
-                    </a>
+    <!-- Footer -->
+    <footer class="mt-12 bg-gray-800 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-8">
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Health Based Dietary</h3>
+                    <p class="text-gray-400">Your partner in achieving optimal health through personalized nutrition.</p>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Quick Links</h3>
+                    <ul class="space-y-2">
+                        <li><a href="#recommendations" class="text-gray-400 hover:text-white transition">Recommendations</a></li>
+                        <li><a href="#profile" class="text-gray-400 hover:text-white transition">Profile</a></li>
+                        <li><a href="#menu" class="text-gray-400 hover:text-white transition">Menu</a></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Contact</h3>
+                    <ul class="space-y-2">
+                        <li class="text-gray-400">WhatsApp: +62 812-7572-2872</li>
+                        <li class="text-gray-400">Email: harrytrumansuhalim8@gmail.com</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3 class="text-lg font-semibold mb-4">Follow Us</h3>
+                    <div class="flex space-x-4">
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-instagram text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-facebook text-xl"></i>
+                        </a>
+                        <a href="#" class="text-gray-400 hover:text-white transition">
+                            <i class="fab fa-twitter text-xl"></i>
+                        </a>
+                    </div>
                 </div>
             </div>
+            <div class="border-t border-gray-700 mt-8 pt-8 text-center">
+                <p class="text-gray-400">&copy; 2024 Health Based Dietary Catering. All rights reserved.</p>
+            </div>
         </div>
-        <div class="border-t border-gray-700 mt-8 pt-8 text-center">
-            <p class="text-gray-400">© 2024 Health Based Dietary Catering. All rights reserved.</p>
-        </div>
-    </div>
-</footer>
+    </footer>
 
     <!-- JavaScript -->
     <script>
@@ -332,7 +283,7 @@
         function switchTab(tabName) {
             // Update tab buttons
             document.querySelectorAll('.tab-button').forEach(button => {
-                if (button.dataset.tab === tabName) {
+                if (button.textContent.trim().toLowerCase() === tabName) {
                     button.classList.add('border-emerald-500', 'text-emerald-600');
                     button.classList.remove('border-transparent', 'text-gray-500');
                 } else {
@@ -346,87 +297,48 @@
                 content.classList.add('hidden');
             });
             document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-            
-            // Close dropdown if open
-            toggleDropdown(false);
         }
-
-        // Dropdown handling
-        const profileButton = document.getElementById('profileButton');
-        const profileDropdown = document.getElementById('profileDropdown');
-        const dropdownContainer = document.getElementById('profileDropdownContainer');
-        
-        function toggleDropdown(show) {
-            profileDropdown.classList.toggle('hidden', !show);
-            setTimeout(() => {
-                profileDropdown.classList.toggle('opacity-0', !show);
-                profileDropdown.classList.toggle('scale-95', !show);
-            }, 10);
-        }
-
-        profileButton.addEventListener('click', (e) => {
-            e.stopPropagation();
-            const isHidden = profileDropdown.classList.contains('hidden');
-            toggleDropdown(isHidden);
-        });
-
-        document.addEventListener('click', (e) => {
-            if (!dropdownContainer.contains(e.target)) {
-                toggleDropdown(false);
-            }
-        });
 
         // Handle recommendation form submission
-        document.getElementById('recommendationForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-    
+        document.getElementById('recommendationForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const submitButton = document.getElementById('submitButton');
+            const buttonContent = document.getElementById('buttonContent');
+            const form = event.target;
+
             // Collect form data
-            const formData = new FormData(e.target);
-            const formDataObject = {};
-    
-            // Get health goals (checkboxes)
-            const goals = [];
-            formData.getAll('goals').forEach(goal => goals.push(goal));
-            formDataObject.goals = goals;
-    
-            // Get activity level (select)
-            formDataObject.activity_level = formData.get('activity_level');
-    
-            // Get dietary restrictions (checkboxes)
-            const restrictions = [];
-            formData.getAll('restrictions').forEach(restriction => restrictions.push(restriction));
-            formDataObject.restrictions = restrictions;
-    
-            // Get health conditions (textarea)
-            formDataObject.health_conditions = formData.get('health_conditions');
-    
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            submitButton.disabled = true;
-            submitButton.innerHTML = `
-             <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-              </svg>
-            `;
-    
+            const formData = new FormData(form);
+            const data = {
+                goals: Array.from(formData.getAll('goals')),
+                activity_level: formData.get('activity_level'),
+                restrictions: Array.from(formData.getAll('restrictions')),
+                health_conditions: formData.get('health_conditions')
+            };
+
             try {
+                // Disable button and show loading state
+                submitButton.disabled = true;
+                buttonContent.innerHTML = `
+                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                    <span class="ml-2">Processing...</span>
+                `;
+
+                // Make API request
                 const response = await fetch('/recommendations', {
                     method: 'POST',
                     headers: {
-                        'Accept': 'application/json',
-                        'Content-Type': 'application/json'
+                        'Content-Type': 'application/json',
                     },
-                    body: JSON.stringify(formDataObject)
+                    body: JSON.stringify(data)
                 });
 
                 if (!response.ok) {
-                    const errorData = await response.text();
-                    throw new Error(errorData);
+                    throw new Error(await response.text());
                 }
 
                 const result = await response.json();
-        
-                // Show recommendations
+
+                // Show results
                 const recommendationsDiv = document.getElementById('recommendationsResult');
                 const menuRecommendations = document.getElementById('menuRecommendations');
                 
@@ -434,32 +346,37 @@
                 menuRecommendations.innerHTML = `
                     <div class="bg-green-50 p-4 rounded-lg mb-4">
                         <h4 class="font-semibold text-green-800 mb-2">Nutritional Goals</h4>
-                        <p class="text-green-700">Calories: ${result.nutritionGoals.Calories}</p>
-                        <p class="text-green-700">Protein: ${result.nutritionGoals.Protein}</p>
-                        <p class="text-green-700">Carbs: ${result.nutritionGoals.Carbs}</p>
-                        <p class="text-green-700">Fat: ${result.nutritionGoals.Fat}</p>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            ${Object.entries(result.nutritionGoals).map(([key, value]) => `
+                                <div class="text-center">
+                                    <div class="text-2xl font-bold text-green-700">${value}</div>
+                                    <div class="text-sm text-green-600">${key}</div>
+                                </div>
+                            `).join('')}
+                        </div>
                     </div>
-            
+
                     <div class="space-y-4">
                         ${result.menuItems.map(item => `
                             <div class="bg-white p-4 rounded-lg shadow">
-                              <h5 class="font-semibold text-gray-800">${item.name}</h5>
+                                <h5 class="font-semibold text-gray-800">${item.name}</h5>
                                 <p class="text-gray-600 text-sm">${item.description}</p>
                                 <p class="text-emerald-600 mt-2">${item.calories} calories</p>
                             </div>
                         `).join('')}
                     </div>
-            
+
                     <div class="mt-6 bg-blue-50 p-4 rounded-lg">
                         <h4 class="font-semibold text-blue-800 mb-2">Health Advice</h4>
                         <p class="text-blue-700">${result.healthAdvice}</p>
                     </div>
                 `;
-        
+
                 recommendationsDiv.scrollIntoView({ behavior: 'smooth' });
-        
+
             } catch (error) {
                 console.error('Error:', error);
+                // Show error message
                 Toastify({
                     text: error.message || "Failed to generate recommendations",
                     duration: 4000,
@@ -468,91 +385,58 @@
                     backgroundColor: "#EF4444",
                 }).showToast();
             } finally {
+                // Reset button state
                 submitButton.disabled = false;
-                submitButton.innerHTML = `
-                    <span class="flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
-                        </svg>
-                        Get AI Recommendations
-                    </span>
+                buttonContent.innerHTML = `
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                    Get AI Recommendations
                 `;
             }
         });
 
-        // Profile form handling
-        document.getElementById('profileForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const formData = new FormData(e.target);
-            const submitButton = e.target.querySelector('button[type="submit"]');
-            
-            submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-            `;
-            
+        // Handle profile form submission
+        document.getElementById('profileForm').addEventListener('submit', async (event) => {
+            event.preventDefault();
+            const form = event.target;
+            const submitButton = form.querySelector('button[type="submit"]');
+
             try {
+                submitButton.disabled = true;
+                submitButton.innerHTML = `<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>`;
+
+                const formData = new FormData(form);
                 const response = await fetch('/update-profile', {
                     method: 'POST',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                    credentials: 'include',
                     body: formData
                 });
 
-                const result = await response.json();
-                
-                if (response.ok) {
-                    Toastify({
-                        text: "Profile updated successfully!",
-                        duration: 3000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: "#10B981",
-                        stopOnFocus: true,
-                    }).showToast();
-                    
-                    setTimeout(() => window.location.reload(), 1000);
-                } else {
-                    throw new Error(result.detail || 'Failed to update profile');
+                if (!response.ok) {
+                    throw new Error('Failed to update profile');
                 }
+
+                Toastify({
+                    text: "Profile updated successfully!",
+                    duration: 3000,
+                    gravity: "top",
+                    position: "right",
+                    backgroundColor: "#10B981",
+                }).showToast();
+
             } catch (error) {
                 console.error('Error:', error);
                 Toastify({
-                    text: error.message || "An error occurred while updating profile",
+                    text: error.message || "Failed to update profile",
                     duration: 4000,
                     gravity: "top",
                     position: "right",
                     backgroundColor: "#EF4444",
-                    stopOnFocus: true,
                 }).showToast();
             } finally {
                 submitButton.disabled = false;
-                submitButton.innerHTML = `
-                    <span class="flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
-                        </svg>
-                        Update Profile
-                    </span>
-                `;
+                submitButton.innerHTML = 'Update Profile';
             }
-        });
-
-        // Input validation
-        document.querySelectorAll('input[type="number"]').forEach(input => {
-            input.addEventListener('input', (e) => {
-                if (e.target.value < 0) {
-                    e.target.value = 0;
-                }
-                if (e.target.name === 'age') {
-                    e.target.value = Math.floor(Number(e.target.value));
-                }
-            });
         });
     </script>
 </body>
