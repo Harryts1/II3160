@@ -704,43 +704,35 @@ if __name__ == "__main__":
 @app.post("/recommendations")
 async def get_recommendations(request: Request):
     try:
+        # Authentication check
         user = request.session.get('user')
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
+        # Get request data and user profile
         request_data = await request.json()
         db = await get_database()
         user_profile = await db.users.find_one({"email": user.get("email")})
         
-        if not user_profile:
-            logger.warning(f"No profile found for user: {user.get('email')}")
-            user_profile = {}
-        
-        # Get AI recommendation for nutritional goals and health advice
+        # Get AI recommendations
         prompt = construct_dietary_prompt(user_profile, request_data)
         response = await call_groq_api(prompt)
         ai_response = response['choices'][0]['message']['content']
         
-        # Extract nutritional goals and health advice
+        # Process different components
         nutrition_goals = extract_nutrition_goals(ai_response)
+        menu_items = await extract_menu_items(db, ['breakfast', 'lunch', 'dinner'], request_data.get('restrictions', []))
         health_advice = extract_health_advice(ai_response)
         
-        # Get menu items from database
-        menu_items = await extract_menu_items(
-            db, 
-            ['breakfast', 'lunch', 'dinner'],
-            request_data.get('restrictions', [])
-        )
-        
+        # Construct response
         final_response = {
             "nutritionGoals": nutrition_goals,
             "menuItems": menu_items,
             "healthAdvice": health_advice,
-            "generated_at": datetime.now().isoformat(),
-            "version": "1.0"
+            "generated_at": datetime.now().isoformat()
         }
         
-        # Save recommendation to diet_plans
+        # Save to diet_plans
         diet_plan = {
             "user_id": user.get('email'),
             "recommendations": final_response,
@@ -748,11 +740,10 @@ async def get_recommendations(request: Request):
             "goals": request_data.get('goals', []),
             "created_at": datetime.now()
         }
-        
         await db.diet_plans.insert_one(diet_plan)
         
         return final_response
-        
+    
     except Exception as e:
         logger.error(f"Error in recommendations: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
@@ -790,29 +781,6 @@ def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
     ])
     
     return "\n".join(prompt_parts)
-
-async def extract_menu_items(db, menu_categories: list, dietary_restrictions: list = None) -> list:
-    """Extract menu items from database based on categories and restrictions."""
-    try:
-        menu_items = []
-        for category in menu_categories:  # ['breakfast', 'lunch', 'dinner']
-            # Get menu items for this category
-            query = {"category": category}
-            category_items = await db.menu_items.find(query).to_list(length=None)
-            
-            if category_items:
-                # Select one random item from available items
-                selected_item = random.choice(category_items)
-                menu_items.append({
-                    "name": f"{category.title()}: {selected_item['name']}",
-                    "calories": selected_item['nutrition_info']['calories'],
-                    "description": selected_item['description']
-                })
-            
-        return menu_items
-    except Exception as e:
-        logger.error(f"Error extracting menu items: {str(e)}")
-        raise e
 
 def extract_health_advice(ai_response: str) -> str:
     """Extract health advice from AI response."""
