@@ -377,20 +377,39 @@
         });
 
         // Handle recommendation form submission
+        // Handle recommendation form submission
         document.getElementById('recommendationForm').addEventListener('submit', async (e) => {
             e.preventDefault();
+    
+            // Collect form data
             const formData = new FormData(e.target);
+            const formDataObject = {};
+    
+            // Get health goals (checkboxes)
+            const goals = [];
+            formData.getAll('goals').forEach(goal => goals.push(goal));
+            formDataObject.goals = goals;
+    
+            // Get activity level (select)
+            formDataObject.activity_level = formData.get('activity_level');
+    
+            // Get dietary restrictions (checkboxes)
+            const restrictions = [];
+            formData.getAll('restrictions').forEach(restriction => restrictions.push(restriction));
+            formDataObject.restrictions = restrictions;
+    
+            // Get health conditions (textarea)
+            formDataObject.health_conditions = formData.get('health_conditions');
+    
             const submitButton = e.target.querySelector('button[type="submit"]');
-            
-            // Disable button and show loading state
             submitButton.disabled = true;
             submitButton.innerHTML = `
-                <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
+             <svg class="animate-spin h-5 w-5 mx-auto" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                 <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                 <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
             `;
-            
+    
             try {
                 const response = await fetch('/recommendations', {
                     method: 'POST',
@@ -398,62 +417,48 @@
                         'Accept': 'application/json',
                         'Content-Type': 'application/json'
                     },
-                    body: JSON.stringify(Object.fromEntries(formData))
+                    body: JSON.stringify(formDataObject)
                 });
 
-                const result = await response.json();
-                
-                if (response.ok) {
-                    // Show recommendations
-                    const recommendationsDiv = document.getElementById('recommendationsResult');
-                    const menuRecommendations = document.getElementById('menuRecommendations');
-                    
-                    menuRecommendations.innerHTML = `
-                        <div class="bg-green-50 p-4 rounded-lg mb-4">
-                            <h4 class="font-semibold text-green-800 mb-2">Nutritional Goals</h4>
-                            <p class="text-green-700">Calories: ${result.nutritionGoals.Calories}</p>
-                            <p class="text-green-700">Protein: ${result.nutritionGoals.Protein}</p>
-                            <p class="text-green-700">Carbs: ${result.nutritionGoals.Carbs}</p>
-                            <p class="text-green-700">Fat: ${result.nutritionGoals.Fat}</p>
-                        </div>
-                        
-                        <div class="space-y-4">
-                            ${result.menuItems.map(item => `
-                                <div class="bg-white p-4 rounded-lg shadow">
-                                    <h5 class="font-semibold text-gray-800">${item.name}</h5>
-                                    <p class="text-gray-600 text-sm">${item.description}</p>
-                                    <p class="text-emerald-600 mt-2">${item.calories} calories</p>
-                                </div>
-                            `).join('')}
-                        </div>
-                        
-                        <div class="mt-6 bg-blue-50 p-4 rounded-lg">
-                            <h4 class="font-semibold text-blue-800 mb-2">Health Advice</h4>
-                            <p class="text-blue-700">${result.healthAdvice}</p>
-                        </div>
-                        
-                        <div class="mt-6">
-                            <a href="https://wa.me/+6281275722872?text=Halo%2C%20saya%20tertarik%20dengan%20menu%20yang%20direkomendasikan" 
-                               class="inline-flex items-center justify-center w-full bg-green-500 text-white py-3 px-4 rounded-lg hover:bg-green-600 transition-all">
-                                <i class="fab fa-whatsapp mr-2 text-xl"></i>
-                                Order This Menu
-                            </a>
-                        </div>
-                    `;
-                    
-                    recommendationsDiv.classList.remove('hidden');
-                    recommendationsDiv.scrollIntoView({ behavior: 'smooth' });
-                    
-                    Toastify({
-                        text: "Recommendations generated successfully!",
-                        duration: 3000,
-                        gravity: "top",
-                        position: "right",
-                        backgroundColor: "#10B981",
-                    }).showToast();
-                } else {
-                    throw new Error(result.detail || 'Failed to get recommendations');
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(errorData);
                 }
+
+                const result = await response.json();
+        
+                // Show recommendations
+                const recommendationsDiv = document.getElementById('recommendationsResult');
+                const menuRecommendations = document.getElementById('menuRecommendations');
+                
+                recommendationsDiv.classList.remove('hidden');
+                menuRecommendations.innerHTML = `
+                    <div class="bg-green-50 p-4 rounded-lg mb-4">
+                        <h4 class="font-semibold text-green-800 mb-2">Nutritional Goals</h4>
+                        <p class="text-green-700">Calories: ${result.nutritionGoals.Calories}</p>
+                        <p class="text-green-700">Protein: ${result.nutritionGoals.Protein}</p>
+                        <p class="text-green-700">Carbs: ${result.nutritionGoals.Carbs}</p>
+                        <p class="text-green-700">Fat: ${result.nutritionGoals.Fat}</p>
+                    </div>
+            
+                    <div class="space-y-4">
+                        ${result.menuItems.map(item => `
+                            <div class="bg-white p-4 rounded-lg shadow">
+                              <h5 class="font-semibold text-gray-800">${item.name}</h5>
+                                <p class="text-gray-600 text-sm">${item.description}</p>
+                                <p class="text-emerald-600 mt-2">${item.calories} calories</p>
+                            </div>
+                        `).join('')}
+                    </div>
+            
+                    <div class="mt-6 bg-blue-50 p-4 rounded-lg">
+                        <h4 class="font-semibold text-blue-800 mb-2">Health Advice</h4>
+                        <p class="text-blue-700">${result.healthAdvice}</p>
+                    </div>
+                `;
+        
+                recommendationsDiv.scrollIntoView({ behavior: 'smooth' });
+        
             } catch (error) {
                 console.error('Error:', error);
                 Toastify({
@@ -468,7 +473,7 @@
                 submitButton.innerHTML = `
                     <span class="flex items-center justify-center">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
+                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" />
                         </svg>
                         Get AI Recommendations
                     </span>
