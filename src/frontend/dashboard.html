@@ -411,57 +411,6 @@
             }
         });
 
-        <div id="recommendationsResult" class="mt-8">
-            <h3 class="text-xl font-semibold mb-4">Your Personalized Menu Recommendations</h3>
-    
-            <div class="bg-green-50 p-6 rounded-lg mb-6">
-                <h4 class="text-lg font-semibold text-green-800 mb-4">Nutritional Goals</h4>
-                <div class="grid grid-cols-4 gap-4 text-center">
-                    <div>
-                        <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Calories}</div>
-                        <div class="text-sm text-green-700">Calories</div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Protein}</div>
-                        <div class="text-sm text-green-700">Protein</div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Carbs}</div>
-                        <div class="text-sm text-green-700">Carbs</div>
-                    </div>
-                    <div>
-                        <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Fat}</div>
-                        <div class="text-sm text-green-700">Fat</div>
-                    </div>
-                </div>
-            </div>
-
-            <div class="space-y-4 mb-6">
-                <h4 class="text-lg font-semibold text-gray-800">Recommended Menu</h4>
-                ${result.menuItems.map(item => `
-                    <div class="bg-white p-4 rounded-lg shadow-md border border-gray-100">
-                        <div class="flex justify-between items-center mb-2">
-                            <h5 class="font-semibold text-gray-800">${item.name}</h5>
-                            <span class="text-emerald-600 font-medium">${item.calories}</span>
-                        </div>
-                        <p class="text-gray-600">${item.description}</p>
-                    </div>
-                `).join('')}
-            </div>
-
-            <div class="bg-blue-50 p-6 rounded-lg">
-                <h4 class="text-lg font-semibold text-blue-800 mb-4">Health Advice</h4>
-                <div class="space-y-2 text-blue-700">
-                    ${result.healthAdvice.split('\n').map(advice => `
-                        <p class="flex items-start">
-                            <span class="mr-2">•</span>
-                            <span>${advice.replace('•', '').trim()}</span>
-                        </p>
-                    `).join('')}
-                </div>
-            </div>
-        </div>
-
         // Handle profile form submission
         document.getElementById('profileForm').addEventListener('submit', async (event) => {
             event.preventDefault();
