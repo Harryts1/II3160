@@ -623,133 +623,63 @@ if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
 
-@app.post("/recommendations")
-async def get_recommendations(request: Request):
-    """
-    Generate personalized dietary recommendations using Groq AI.
+def process_ai_response(ai_response: str) -> dict:
+    """Process and structure the AI response into a standardized format."""
     
-    Args:
-        request (Request): FastAPI request object containing user session
-        
-    Returns:
-        dict: Structured dietary recommendations
-        
-    Raises:
-        HTTPException: For authentication or processing errors
-    """
     try:
-        # Get user from session
-        user = request.session.get('user')
-        if not user:
-            raise HTTPException(status_code=401, detail="Not authenticated")
+        # Split response into sections (assuming AI follows the requested format)
+        sections = ai_response.split('\n\n')
         
-        # Get form data if it exists
-        form_data = None
-        if request.method == "POST":
-            form_data = await request.form()
+        # Extract nutritional goals
+        nutrition_section = next((s for s in sections if 'calories' in s.lower()), '')
+        nutrition_goals = extract_nutrition_goals(nutrition_section)
         
-        # Get user profile from database
-        db = await get_database()
-        user_profile = await db.users.find_one({"email": user.get("email")})
+        # Extract menu items
+        menu_section = next((s for s in sections if 'breakfast' in s.lower()), '')
+        menu_items = extract_menu_items(menu_section)
         
-        if not user_profile:
-            logger.warning(f"No profile found for user: {user.get('email')}")
-            user_profile = {}
-
-        # Construct prompt for AI
-        prompt = construct_dietary_prompt(user_profile, form_data)
+        # Extract health advice
+        health_section = next((s for s in sections if 'advice' in s.lower()), '')
+        health_advice = health_section.replace('Health Advice:', '').strip()
         
-        # Call Groq API
-        try:
-            completion = await groq_client.chat.completions.create(
-            model="mixtral-8x7b-32768",
-            messages=[
-                {
-                    "role": "system",
-                    "content": """You are a professional nutritionist and dietary consultant. 
-                    Provide specific, detailed menu recommendations based on the user's health profile 
-                    and preferences. Format your response in a structured way with clear sections for 
-                    nutritional goals, menu items, and health advice."""
-                },
-                {
-                    "role": "user",
-                    "content": prompt
-                }
-            ],
-            temperature=0.7,
-            max_tokens=2048,
-            top_p=1
-        )
-            
-            # Extract and parse AI response
-            ai_response = completion.choices[0].message.content
-            
-            # Process and structure the AI response
-            try:
-                structured_response = process_ai_response(ai_response)
-            except Exception as e:
-                logger.error(f"Error processing AI response: {str(e)}")
-                # Fallback to default structure if parsing fails
-                structured_response = create_default_recommendations()
-                
-            # Add metadata and timestamp
-            final_response = {
-                **structured_response,
-                "generated_at": datetime.now().isoformat(),
-                "version": "1.0"
-            }
-            
-            # Log successful recommendation generation
-            logger.info(f"Generated recommendations for user: {user.get('email')}")
-            
-            return final_response
-            
-        except Exception as e:
-            logger.error(f"Groq API error: {str(e)}")
-            raise HTTPException(
-                status_code=500,
-                detail="Error generating recommendations"
-            )
-            
-    except HTTPException as he:
-        raise he
+        return {
+            "nutritionGoals": nutrition_goals,
+            "menuItems": menu_items,
+            "healthAdvice": health_advice
+        }
     except Exception as e:
-        logger.error(f"Unexpected error in get_recommendations: {str(e)}")
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred"
-        )
+        logger.error(f"Error processing AI response: {str(e)}")
+        return create_default_recommendations()
 
-def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
-    """Construct a detailed prompt for the AI based on user profile and form data."""
+def create_default_recommendations() -> dict:
+    """Create default recommendations when AI processing fails."""
     
-    health_profile = user_profile.get('health_profile', {})
-    
-    prompt_parts = [
-        "Please provide detailed dietary recommendations for a person with the following profile:",
-        f"Age: {health_profile.get('age', 'Not specified')}",
-        f"Weight: {health_profile.get('weight', 'Not specified')} kg",
-        f"Height: {health_profile.get('height', 'Not specified')} cm",
-        f"Medical Conditions: {', '.join(health_profile.get('medical_conditions', ['None specified']))}",
-        f"Allergies: {', '.join(health_profile.get('allergies', ['None specified']))}",
-        f"Dietary Preferences: {', '.join(health_profile.get('dietary_preferences', ['None specified']))}"
-    ]
-    
-    # Add form data if available
-    if form_data:
-        if form_data.get('goals'):
-            prompt_parts.append(f"Goals: {form_data.get('goals')}")
-        if form_data.get('activity_level'):
-            prompt_parts.append(f"Activity Level: {form_data.get('activity_level')}")
-        if form_data.get('restrictions'):
-            prompt_parts.append(f"Additional Restrictions: {form_data.get('restrictions')}")
-            
-    prompt_parts.append("\nPlease provide:")
-    prompt_parts.append("1. Daily nutritional goals (calories, protein, carbs, fat)")
-    prompt_parts.append("2. Specific menu recommendations for breakfast, lunch, and dinner")
-    prompt_parts.append("3. Detailed health advice based on the profile")
-    
-    return "\n".join(prompt_parts)
+    return {
+        "nutritionGoals": {
+            "Calories": "2000 kcal",
+            "Protein": "75g",
+            "Carbs": "250g",
+            "Fat": "65g"
+        },
+        "menuItems": [
+            {
+                "name": "Breakfast: Oatmeal with fruits and nuts",
+                "calories": "300",
+                "description": "Rich in fiber and healthy fats"
+            },
+            {
+                "name": "Lunch: Grilled chicken salad with mixed greens",
+                "calories": "400",
+                "description": "High in protein, low in calories"
+            },
+            {
+                "name": "Dinner: Baked salmon with quinoa and vegetables",
+                "calories": "450",
+                "description": "Rich in omega-3 and protein"
+            }
+        ],
+        "healthAdvice": "Focus on maintaining a balanced diet with regular meals throughout the day. Include a variety of fruits, vegetables, lean proteins, and whole grains."
+    }
 
 def process_ai_response(ai_response: str) -> dict:
     """Process and structure the AI response into a standardized format."""
