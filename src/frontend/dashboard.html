@@ -304,30 +304,27 @@
             event.preventDefault();
             const submitButton = document.getElementById('submitButton');
             const buttonContent = document.getElementById('buttonContent');
-            const form = event.target;
-
-            // Collect form data
-            const formData = new FormData(form);
-            const data = {
-                goals: Array.from(formData.getAll('goals')),
-                activity_level: formData.get('activity_level'),
-                restrictions: Array.from(formData.getAll('restrictions')),
-                health_conditions: formData.get('health_conditions')
-            };
+    
+            // Show loading state
+            submitButton.disabled = true;
+            buttonContent.innerHTML = `
+                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+                <span class="ml-2">Processing...</span>
+            `;
 
             try {
-                // Disable button and show loading state
-                submitButton.disabled = true;
-                buttonContent.innerHTML = `
-                    <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-                    <span class="ml-2">Processing...</span>
-                `;
+                const formData = new FormData(event.target);
+                const data = {
+                    goals: Array.from(formData.getAll('goals')),
+                    activity_level: formData.get('activity_level'),
+                    restrictions: Array.from(formData.getAll('restrictions')),
+                    health_conditions: formData.get('health_conditions')
+                };
 
-                // Make API request
                 const response = await fetch('/recommendations', {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify(data)
                 });
@@ -337,53 +334,71 @@
                 }
 
                 const result = await response.json();
-
-                // Show results
+        
+                // Show recommendations section
                 const recommendationsDiv = document.getElementById('recommendationsResult');
                 const menuRecommendations = document.getElementById('menuRecommendations');
-                
                 recommendationsDiv.classList.remove('hidden');
+
+                // Format and display the recommendations
                 menuRecommendations.innerHTML = `
-                    <div class="bg-green-50 p-4 rounded-lg mb-4">
-                        <h4 class="font-semibold text-green-800 mb-2">Nutritional Goals</h4>
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-                            ${Object.entries(result.nutritionGoals).map(([key, value]) => `
-                                <div class="text-center">
-                                    <div class="text-2xl font-bold text-green-700">${value}</div>
-                                    <div class="text-sm text-green-600">${key}</div>
-                                </div>
-                            `).join('')}
+                    <!-- Nutritional Goals Section -->
+                    <div class="bg-green-50 p-6 rounded-lg mb-6">
+                        <h4 class="text-lg font-semibold text-green-800 mb-4">Nutritional Goals</h4>
+                        <div class="grid grid-cols-4 gap-4 text-center">
+                            <div>
+                                <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Calories}</div>
+                                <div class="text-sm text-green-700">Calories</div>
+                            </div>
+                            <div>
+                                <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Protein}</div>
+                                <div class="text-sm text-green-700">Protein</div>
+                            </div>
+                            <div>
+                                <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Carbs}</div>
+                                <div class="text-sm text-green-700">Carbs</div>
+                            </div>
+                            <div>
+                                <div class="text-3xl font-bold text-green-600">${result.nutritionGoals.Fat}</div>
+                                <div class="text-sm text-green-700">Fat</div>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="space-y-4">
+                    <!-- Menu Items Section -->
+                    <div class="space-y-4 mb-6">
+                        <h4 class="text-lg font-semibold text-gray-800 mb-4">Recommended Menu</h4>
                         ${result.menuItems.map(item => `
-                            <div class="bg-white p-4 rounded-lg shadow">
+                            <div class="bg-white p-4 rounded-lg shadow-md border border-gray-100">
                                 <h5 class="font-semibold text-gray-800">${item.name}</h5>
-                                <p class="text-gray-600 text-sm">${item.description}</p>
-                                <p class="text-emerald-600 mt-2">${item.calories} calories</p>
+                                <p class="text-gray-600 text-sm mt-2">${item.description}</p>
+                                <div class="mt-2 flex items-center">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5 text-emerald-500 mr-1" viewBox="0 0 20 20" fill="currentColor">
+                                        <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-11a1 1 0 10-2 0v2H7a1 1 0 100 2h2v2a1 1 0 102 0v-2h2a1 1 0 100-2h-2V7z" clip-rule="evenodd" />
+                                    </svg>
+                                    <span class="text-emerald-600 font-medium">${item.calories} calories</span>
+                                </div>
                             </div>
                         `).join('')}
                     </div>
 
-                    <div class="mt-6 bg-blue-50 p-4 rounded-lg">
-                        <h4 class="font-semibold text-blue-800 mb-2">Health Advice</h4>
-                        <p class="text-blue-700">${result.healthAdvice}</p>
+                    <!-- Health Advice Section -->
+                    <div class="bg-blue-50 p-6 rounded-lg">
+                        <h4 class="text-lg font-semibold text-blue-800 mb-2">Health Advice</h4>
+                        <p class="text-blue-700 leading-relaxed">${result.healthAdvice}</p>
                     </div>
                 `;
 
+                // Scroll to recommendations
                 recommendationsDiv.scrollIntoView({ behavior: 'smooth' });
 
             } catch (error) {
                 console.error('Error:', error);
                 // Show error message
-                Toastify({
-                    text: error.message || "Failed to generate recommendations",
-                    duration: 4000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#EF4444",
-                }).showToast();
+                const errorDiv = document.createElement('div');
+                errorDiv.className = 'bg-red-50 text-red-700 p-4 rounded-lg mt-4';
+                errorDiv.textContent = error.message || 'Failed to generate recommendations';
+                document.getElementById('recommendationsResult').appendChild(errorDiv);
             } finally {
                 // Reset button state
                 submitButton.disabled = false;
