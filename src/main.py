@@ -1,7 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, Request, Response, Security
 from pydantic import BaseModel
 from typing import List, Dict, Optional
-import openai
+from groq import Groq
+from groq.types import ChatCompletion
 from starlette.config import Config
 from starlette.middleware.sessions import SessionMiddleware
 from authlib.integrations.starlette_client import OAuth
@@ -27,6 +28,12 @@ from pymongo.server_api import ServerApi
 import certifi
 import ssl
 from fastapi.responses import FileResponse
+import re
+
+# Initialize Groq
+groq_client = Groq(
+    api_key="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"
+)
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -41,6 +48,7 @@ AUTH0_DOMAIN = config('AUTH0_DOMAIN', cast=str)
 AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
 AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
 SECRET_KEY = config('SECRET_KEY', cast=str)
+GROQ_API_KEY = config('GROQ_API_KEY', cast=str)
 
 # Global MongoDB connection
 mongodb_client = None
@@ -618,39 +626,278 @@ if __name__ == "__main__":
 
 @app.get("/recommendations")
 async def get_recommendations(request: Request):
+    """
+    Generate personalized dietary recommendations using Groq AI.
+    
+    Args:
+        request (Request): FastAPI request object containing user session
+        
+    Returns:
+        dict: Structured dietary recommendations
+        
+    Raises:
+        HTTPException: For authentication or processing errors
+    """
     try:
+        # Get user from session
         user = request.session.get('user')
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
-        # Contoh response data
+        # Get form data if it exists
+        form_data = None
+        if request.method == "POST":
+            form_data = await request.form()
+        
+        # Get user profile from database
+        db = await get_database()
+        user_profile = await db.users.find_one({"email": user.get("email")})
+        
+        if not user_profile:
+            logger.warning(f"No profile found for user: {user.get('email')}")
+            user_profile = {}
+
+        # Construct prompt for AI
+        prompt = construct_dietary_prompt(user_profile, form_data)
+        
+        # Call Groq API
+        try:
+            chat_completion = groq_client.chat.completions.create(
+                messages=[
+                    {
+                        "role": "system",
+                        "content": """You are a professional nutritionist and dietary consultant. 
+                        Provide specific, detailed menu recommendations based on the user's health profile 
+                        and preferences. Format your response in a structured way with clear sections for 
+                        nutritional goals, menu items, and health advice."""
+                    },
+                    {
+                        "role": "user",
+                        "content": prompt
+                    }
+                ],
+                model="mixtral-8x7b-32768",
+                temperature=0.7,
+                max_tokens=2048,
+                top_p=1,
+                stream=False
+            )
+            
+            # Extract and parse AI response
+            ai_response = chat_completion.choices[0].message.content
+            
+            # Process and structure the AI response
+            try:
+                structured_response = process_ai_response(ai_response)
+            except Exception as e:
+                logger.error(f"Error processing AI response: {str(e)}")
+                # Fallback to default structure if parsing fails
+                structured_response = create_default_recommendations()
+                
+            # Add metadata and timestamp
+            final_response = {
+                **structured_response,
+                "generated_at": datetime.now().isoformat(),
+                "version": "1.0"
+            }
+            
+            # Log successful recommendation generation
+            logger.info(f"Generated recommendations for user: {user.get('email')}")
+            
+            return final_response
+            
+        except Exception as e:
+            logger.error(f"Groq API error: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Error generating recommendations"
+            )
+            
+    except HTTPException as he:
+        raise he
+    except Exception as e:
+        logger.error(f"Unexpected error in get_recommendations: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred"
+        )
+
+def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
+    """Construct a detailed prompt for the AI based on user profile and form data."""
+    
+    health_profile = user_profile.get('health_profile', {})
+    
+    prompt_parts = [
+        "Please provide detailed dietary recommendations for a person with the following profile:",
+        f"Age: {health_profile.get('age', 'Not specified')}",
+        f"Weight: {health_profile.get('weight', 'Not specified')} kg",
+        f"Height: {health_profile.get('height', 'Not specified')} cm",
+        f"Medical Conditions: {', '.join(health_profile.get('medical_conditions', ['None specified']))}",
+        f"Allergies: {', '.join(health_profile.get('allergies', ['None specified']))}",
+        f"Dietary Preferences: {', '.join(health_profile.get('dietary_preferences', ['None specified']))}"
+    ]
+    
+    # Add form data if available
+    if form_data:
+        if form_data.get('goals'):
+            prompt_parts.append(f"Goals: {form_data.get('goals')}")
+        if form_data.get('activity_level'):
+            prompt_parts.append(f"Activity Level: {form_data.get('activity_level')}")
+        if form_data.get('restrictions'):
+            prompt_parts.append(f"Additional Restrictions: {form_data.get('restrictions')}")
+            
+    prompt_parts.append("\nPlease provide:")
+    prompt_parts.append("1. Daily nutritional goals (calories, protein, carbs, fat)")
+    prompt_parts.append("2. Specific menu recommendations for breakfast, lunch, and dinner")
+    prompt_parts.append("3. Detailed health advice based on the profile")
+    
+    return "\n".join(prompt_parts)
+
+def process_ai_response(ai_response: str) -> dict:
+    """Process and structure the AI response into a standardized format."""
+    
+    try:
+        # Split response into sections (assuming AI follows the requested format)
+        sections = ai_response.split('\n\n')
+        
+        # Extract nutritional goals
+        nutrition_section = next((s for s in sections if 'calories' in s.lower()), '')
+        nutrition_goals = extract_nutrition_goals(nutrition_section)
+        
+        # Extract menu items
+        menu_section = next((s for s in sections if 'breakfast' in s.lower()), '')
+        menu_items = extract_menu_items(menu_section)
+        
+        # Extract health advice
+        health_section = next((s for s in sections if 'advice' in s.lower()), '')
+        health_advice = health_section.replace('Health Advice:', '').strip()
+        
         return {
-            "nutritionGoals": {
-                "Calories": "2000 kcal",
-                "Protein": "75g",
-                "Carbs": "250g",
-                "Fat": "65g"
-            },
-            "menuItems": [
-                {
-                    "name": "Breakfast: Oatmeal with fruits",
-                    "calories": "300",
-                    "description": "Rich in fiber and antioxidants"
-                },
-                {
-                    "name": "Lunch: Grilled chicken salad",
-                    "calories": "400",
-                    "description": "High protein, low carb"
-                },
-                {
-                    "name": "Dinner: Salmon with vegetables",
-                    "calories": "450",
-                    "description": "Omega-3 rich, heart-healthy"
-                }
-            ],
-            "healthAdvice": "Based on your profile, focus on consuming more protein and maintaining regular meal times."
+            "nutritionGoals": nutrition_goals,
+            "menuItems": menu_items,
+            "healthAdvice": health_advice
         }
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.error(f"Error processing AI response: {str(e)}")
+        return create_default_recommendations()
+
+def extract_nutrition_goals(nutrition_text: str) -> dict:
+    """Extract numerical nutrition goals from text."""
+    
+    goals = {
+        "Calories": "2000 kcal",
+        "Protein": "75g",
+        "Carbs": "250g",
+        "Fat": "65g"
+    }
+    
+    try:
+        # Look for patterns like "1800 calories" or "70g protein"
+        import re
+        
+        calories = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', nutrition_text.lower())
+        if calories:
+            goals["Calories"] = f"{calories.group(1)} kcal"
+            
+        protein = re.search(r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?protein', nutrition_text.lower())
+        if protein:
+            goals["Protein"] = f"{protein.group(1)}g"
+            
+        carbs = re.search(r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?(?:carbs|carbohydrates)', nutrition_text.lower())
+        if carbs:
+            goals["Carbs"] = f"{carbs.group(1)}g"
+            
+        fat = re.search(r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?fat', nutrition_text.lower())
+        if fat:
+            goals["Fat"] = f"{fat.group(1)}g"
+            
+    except Exception as e:
+        logger.warning(f"Error extracting nutrition goals: {str(e)}")
+        
+    return goals
+
+def extract_menu_items(menu_text: str) -> list:
+    """Extract menu items from text and structure them."""
+    
+    try:
+        menu_items = []
+        meals = ['breakfast', 'lunch', 'dinner']
+        
+        for meal in meals:
+            # Look for meal section in text
+            meal_pattern = re.compile(f'{meal}:.*?(?={"|".join(meals)}|$)', re.I | re.S)
+            meal_match = meal_pattern.search(menu_text)
+            
+            if meal_match:
+                meal_text = meal_match.group(0).strip()
+                # Extract calories if present
+                calories_match = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', meal_text.lower())
+                calories = calories_match.group(1) if calories_match else "300"
+                
+                menu_items.append({
+                    "name": f"{meal.title()}: {meal_text.split(':')[1].strip() if ':' in meal_text else meal_text}",
+                    "calories": calories,
+                    "description": generate_description(meal_text)
+                })
+                
+        return menu_items
+    except Exception as e:
+        logger.error(f"Error extracting menu items: {str(e)}")
+        return create_default_menu_items()
+
+def generate_description(meal_text: str) -> str:
+    """Generate a descriptive text for a meal based on its contents."""
+    
+    keywords = {
+        'protein': 'High in protein',
+        'fiber': 'Rich in fiber',
+        'vitamin': 'Vitamin-rich',
+        'omega': 'Contains healthy fats',
+        'antioxidant': 'Rich in antioxidants',
+        'whole grain': 'Contains whole grains',
+        'vegetable': 'Packed with vegetables'
+    }
+    
+    descriptions = [value for key, value in keywords.items() 
+                   if key in meal_text.lower()]
+    
+    if descriptions:
+        return ', '.join(descriptions)
+    return "Balanced nutritional profile"
+
+def create_default_recommendations() -> dict:
+    """Create default recommendations when AI processing fails."""
+    
+    return {
+        "nutritionGoals": {
+            "Calories": "2000 kcal",
+            "Protein": "75g",
+            "Carbs": "250g",
+            "Fat": "65g"
+        },
+        "menuItems": create_default_menu_items(),
+        "healthAdvice": "Focus on maintaining a balanced diet with regular meals throughout the day. Include a variety of fruits, vegetables, lean proteins, and whole grains."
+    }
+
+def create_default_menu_items() -> list:
+    """Create default menu items when processing fails."""
+    
+    return [
+        {
+            "name": "Breakfast: Oatmeal with fruits and nuts",
+            "calories": "300",
+            "description": "Rich in fiber and healthy fats"
+        },
+        {
+            "name": "Lunch: Grilled chicken salad with mixed greens",
+            "calories": "400",
+            "description": "High in protein, low in calories"
+        },
+        {
+            "name": "Dinner: Baked salmon with quinoa and vegetables",
+            "calories": "450",
+            "description": "Rich in omega-3 and protein"
+        }
+    ]
 
 app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
