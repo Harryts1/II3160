@@ -683,7 +683,7 @@ async def get_recommendations(request: Request):
         ai_response = response['choices'][0]['message']['content']
         
         # Process recommendations
-        nutrition_goals = extract_nutrition_goals(ai_response, menu_items)
+        nutrition_goals = extract_nutrition_goals(ai_response)
         menu_items = await extract_menu_items(db, ['breakfast', 'lunch', 'dinner'], request_data.get('restrictions', []))
         health_advice = extract_health_advice(ai_response)
         
@@ -847,32 +847,32 @@ def process_ai_response(ai_response: str) -> dict:
             "healthAdvice": "• Maintain consistent meal timing\n• Stay hydrated\n• Exercise regularly"
         }
 
-def extract_nutrition_goals(ai_response: str, menu_items: list) -> dict:
-    """Extract nutrition goals based on AI response and menu items."""
+def extract_nutrition_goals(nutrition_text: str) -> dict:
+    """Extract numerical nutrition goals from text."""
     try:
-        # Calculate total calories from menu items
-        total_calories = sum(item.get('calories', 0) for item in menu_items)
+        # Default values
+        goals = {
+            "Calories": "2000 kcal",
+            "Protein": "75g",
+            "Carbs": "250g",
+            "Fat": "65g"
+        }
         
-        # Parse protein, carbs, fat from AI response
+        # Look for specific patterns
         patterns = {
+            'calories': r'(\d+)(?:\s*)?(?:kcal|calories)',
             'protein': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?protein',
             'carbs': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?(?:carbs|carbohydrates)',
             'fat': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?fat'
         }
         
-        goals = {
-            "Calories": f"{total_calories} kcal",
-            "Protein": "75g",  # default values
-            "Carbs": "250g",
-            "Fat": "65g"
-        }
-        
-        # Update with values from AI response if found
         for key, pattern in patterns.items():
-            match = re.search(pattern, ai_response.lower())
+            match = re.search(pattern, nutrition_text.lower())
             if match:
                 value = match.group(1)
-                if key == 'protein':
+                if key == 'calories':
+                    goals["Calories"] = f"{value} kcal"
+                elif key == 'protein':
                     goals["Protein"] = f"{value}g"
                 elif key == 'carbs':
                     goals["Carbs"] = f"{value}g"
@@ -883,12 +883,7 @@ def extract_nutrition_goals(ai_response: str, menu_items: list) -> dict:
         
     except Exception as e:
         logger.error(f"Error extracting nutrition goals: {str(e)}")
-        return {
-            "Calories": "1800 kcal",
-            "Protein": "70g",
-            "Carbs": "220g",
-            "Fat": "60g"
-        }
+        return create_default_nutrition_goals()
 
 async def extract_menu_items(db, menu_categories: list, dietary_restrictions: list = None) -> list:
     """Extract menu items from database based on categories."""
