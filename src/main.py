@@ -743,12 +743,11 @@ async def get_recommendations(request: Request):
         )
 
 def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
-    """Construct a detailed prompt for the AI based on user profile and form data."""
-    
+    """Construct a prompt focused on catering menu recommendations."""
     health_profile = user_profile.get('health_profile', {})
     
     prompt_parts = [
-        "Please provide detailed dietary recommendations for a person with the following profile:",
+        "As a dietary catering service, please provide menu recommendations for a customer with the following profile:",
         f"Age: {health_profile.get('age', 'Not specified')}",
         f"Weight: {health_profile.get('weight', 'Not specified')} kg",
         f"Height: {health_profile.get('height', 'Not specified')} cm",
@@ -757,21 +756,23 @@ def construct_dietary_prompt(user_profile: dict, form_data: dict = None) -> str:
         f"Dietary Preferences: {', '.join(health_profile.get('dietary_preferences', ['None specified']))}"
     ]
     
-    # Add form data
     if form_data:
-        if form_data.get('goals') and len(form_data['goals']) > 0:
+        if form_data.get('goals'):
             prompt_parts.append(f"Goals: {', '.join(form_data['goals'])}")
         if form_data.get('activity_level'):
             prompt_parts.append(f"Activity Level: {form_data['activity_level']}")
-        if form_data.get('restrictions') and len(form_data['restrictions']) > 0:
+        if form_data.get('restrictions'):
             prompt_parts.append(f"Additional Restrictions: {', '.join(form_data['restrictions'])}")
         if form_data.get('health_conditions'):
             prompt_parts.append(f"Health Conditions: {form_data['health_conditions']}")
     
-    prompt_parts.append("\nPlease provide:")
-    prompt_parts.append("1. Daily nutritional goals (calories, protein, carbs, fat)")
-    prompt_parts.append("2. Specific menu recommendations for breakfast, lunch, and dinner")
-    prompt_parts.append("3. Detailed health advice based on the profile")
+    prompt_parts.extend([
+        "\nPlease provide:",
+        "1. Daily nutritional targets (calories, protein, carbs, fat)",
+        "2. Suggested menu items for each meal (breakfast, lunch, dinner) with brief descriptions",
+        "3. General health recommendations",
+        "\nNote: Provide menu names and brief descriptions only, no detailed recipes needed."
+    ])
     
     return "\n".join(prompt_parts)
 
@@ -865,10 +866,10 @@ def extract_nutrition_goals(nutrition_text: str) -> dict:
         return create_default_nutrition_goals()
 
 def extract_menu_items(menu_text: str) -> list:
-    """Extract menu items and structure them."""
+    """Extract simplified menu items for catering service."""
     try:
         menu_items = []
-        current_item = None
+        current_meal = None
         
         lines = menu_text.split('\n')
         for line in lines:
@@ -879,30 +880,20 @@ def extract_menu_items(menu_text: str) -> list:
             # Check for meal headers
             lower_line = line.lower()
             if any(meal in lower_line for meal in ['breakfast:', 'lunch:', 'dinner:', 'snack:']):
-                if current_item:
-                    menu_items.append(current_item)
-                    
-                # Extract calories if present
-                calories_match = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', line.lower())
-                calories = calories_match.group(1) if calories_match else "300"
+                meal_name = line.split(':')[0].strip()
+                meal_desc = line.split(':')[1].strip() if ':' in line else ''
                 
-                current_item = {
-                    "name": line.split(':')[0] + ': ' + line.split(':')[1].strip(),
+                # Extract calories if present
+                calories_match = re.search(r'(\d+)(?:\s*)?(?:kcal|calories)', lower_line)
+                calories = calories_match.group(1) if calories_match else "400"
+                
+                menu_items.append({
+                    "name": f"{meal_name}: {meal_desc}",
                     "calories": f"{calories} calories",
-                    "description": "Balanced nutritional profile"
-                }
-            elif current_item:
-                # Add line as part of description
-                if 'description' in current_item:
-                    current_item['description'] += f" {line}"
-                else:
-                    current_item['description'] = line
-                    
-        # Add last item
-        if current_item:
-            menu_items.append(current_item)
-            
-        # If no items were found, create default items
+                    "description": "Balanced nutritional profile suitable for your dietary needs"
+                })
+        
+        # If no items were found, use defaults
         if not menu_items:
             menu_items = create_default_menu_items()
             
@@ -923,29 +914,29 @@ def create_default_recommendations() -> dict:
 def create_default_nutrition_goals() -> dict:
     """Create default nutrition goals."""
     return {
-        "Calories": "2000 kcal",
-        "Protein": "75g",
-        "Carbs": "250g",
-        "Fat": "65g"
+        "Calories": "1800 kcal",
+        "Protein": "70g",
+        "Carbs": "220g",
+        "Fat": "60g"
     }
 
 def create_default_menu_items() -> list:
-    """Create default menu items."""
+    """Create default catering menu items."""
     return [
         {
-            "name": "Breakfast: Oatmeal with fruits and nuts",
-            "calories": "300 calories",
-            "description": "Rich in fiber and healthy fats"
-        },
-        {
-            "name": "Lunch: Quinoa and vegetable bowl",
+            "name": "Breakfast: Wholesome Morning Bowl",
             "calories": "400 calories",
-            "description": "High in protein and nutrients"
+            "description": "A nutritious breakfast option with whole grains and fresh fruits"
         },
         {
-            "name": "Dinner: Grilled vegetables with tofu",
-            "calories": "350 calories",
-            "description": "Plant-based protein with essential nutrients"
+            "name": "Lunch: Garden Fresh Plate",
+            "calories": "500 calories",
+            "description": "A balanced mix of vegetables and plant-based proteins"
+        },
+        {
+            "name": "Dinner: Evening Wellness Meal",
+            "calories": "450 calories",
+            "description": "Light and nutritious dinner option"
         }
     ]
 
