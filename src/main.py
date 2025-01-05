@@ -31,9 +31,20 @@ import re
 from typing import Dict, Any
 
 # Initialize Groq
-groq_client = Groq(
-    api_key="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"
-)
+groq_client = None
+
+def get_groq_client():
+    global groq_client
+    if groq_client is None:
+        try:
+            groq_client = Groq(api_key=GROQ_API_KEY)
+        except Exception as e:
+            logger.error(f"Failed to initialize Groq client: {str(e)}")
+            raise HTTPException(
+                status_code=500,
+                detail="Failed to initialize AI service"
+            )
+    return groq_client
 
 async def call_groq_api(prompt: str) -> Dict[str, Any]:
     """Make an async call to the Groq API with improved formatting."""
