@@ -389,7 +389,7 @@
                             ${result.healthAdvice.split('\n').filter(advice => advice.trim() !== '').map(advice => `
                                 <div class="flex items-start">
                                     <span class="text-blue-500 mr-3 mt-1.5">•</span>
-                                    <p class="text-blue-700">${advice.replace('•', '').trim()}</p>
+                                        <p class="text-blue-700">${advice.replace(/^[•-]\s*/, '').trim()}</p>
                                 </div>
                             `).join('')}
                         </div>

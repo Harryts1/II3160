@@ -704,12 +704,10 @@ if __name__ == "__main__":
 @app.post("/recommendations")
 async def get_recommendations(request: Request):
     try:
-        # Authentication check
         user = request.session.get('user')
         if not user:
             raise HTTPException(status_code=401, detail="Not authenticated")
         
-        # Get request data and user profile
         request_data = await request.json()
         db = await get_database()
         user_profile = await db.users.find_one({"email": user.get("email")})
@@ -719,12 +717,11 @@ async def get_recommendations(request: Request):
         response = await call_groq_api(prompt)
         ai_response = response['choices'][0]['message']['content']
         
-        # Process different components
+        # Process recommendations
         nutrition_goals = extract_nutrition_goals(ai_response)
         menu_items = await extract_menu_items(db, ['breakfast', 'lunch', 'dinner'], request_data.get('restrictions', []))
         health_advice = extract_health_advice(ai_response)
         
-        # Construct response
         final_response = {
             "nutritionGoals": nutrition_goals,
             "menuItems": menu_items,
@@ -732,18 +729,22 @@ async def get_recommendations(request: Request):
             "generated_at": datetime.now().isoformat()
         }
         
-        # Save to diet_plans
-        diet_plan = {
-            "user_id": user.get('email'),
-            "recommendations": final_response,
-            "restrictions": request_data.get('restrictions', []),
-            "goals": request_data.get('goals', []),
-            "created_at": datetime.now()
-        }
-        await db.diet_plans.insert_one(diet_plan)
+        # Update atau insert diet plan
+        await db.diet_plans.update_one(
+            {"user_id": user.get('email')},  # filter by user_id
+            {
+                "$set": {
+                    "recommendations": final_response,
+                    "restrictions": request_data.get('restrictions', []),
+                    "goals": request_data.get('goals', []),
+                    "updated_at": datetime.now()
+                }
+            },
+            upsert=True  # create if not exists
+        )
         
         return final_response
-    
+        
     except Exception as e:
         logger.error(f"Error in recommendations: {str(e)}")
         raise HTTPException(status_code=500, detail=str(e))
