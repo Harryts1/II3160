@@ -847,10 +847,106 @@ def process_ai_response(ai_response: str) -> dict:
             "healthAdvice": "• Maintain consistent meal timing\n• Stay hydrated\n• Exercise regularly"
         }
 
-def extract_nutrition_goals(nutrition_text: str) -> dict:
-    """Extract numerical nutrition goals from text."""
+def calculate_nutrition_goals(health_profile: dict = None, form_data: dict = None) -> dict:
+    """
+    Calculate personalized nutrition goals based on user's health profile and goals.
+    
+    Parameters:
+    - health_profile: dict containing age, weight (kg), height (cm), medical_conditions, etc
+    - form_data: dict containing activity_level, goals, etc
+    
+    Returns:
+    - dict with calculated daily nutritional goals
+    """
     try:
-        # Default values
+        # Default values for average adult
+        default_goals = {
+            "Calories": "2000 kcal",
+            "Protein": "75g",
+            "Carbs": "250g",
+            "Fat": "65g"
+        }
+        
+        if not health_profile:
+            return default_goals
+            
+        # Extract basic measurements
+        weight = float(health_profile.get('weight', 0))
+        height = float(health_profile.get('height', 0))
+        age = int(health_profile.get('age', 25))
+        
+        # If essential measurements are missing, return default
+        if not (weight and height and age):
+            return default_goals
+            
+        # Calculate BMR using Mifflin-St Jeor Equation
+        # Men: BMR = 10W + 6.25H - 5A + 5
+        # Women: BMR = 10W + 6.25H - 5A - 161
+        # Using male formula as default
+        bmr = (10 * weight) + (6.25 * height) - (5 * age) + 5
+        
+        # Activity level multipliers
+        activity_multipliers = {
+            "sedentary": 1.2,  # Little or no exercise
+            "light": 1.375,    # Light exercise 1-3 days/week
+            "moderate": 1.55,  # Moderate exercise 3-5 days/week
+            "active": 1.725,   # Heavy exercise 6-7 days/week
+            "very_active": 1.9 # Very heavy exercise, physical job
+        }
+        
+        # Get activity level from form data or default to light
+        activity_level = form_data.get('activity_level', 'light').lower()
+        activity_multiplier = activity_multipliers.get(activity_level, 1.375)
+        
+        # Calculate TDEE (Total Daily Energy Expenditure)
+        tdee = bmr * activity_multiplier
+        
+        # Adjust calories based on goals
+        goals = form_data.get('goals', [])
+        calorie_adjustment = 0
+        
+        if 'weight_loss' in goals:
+            calorie_adjustment = -500  # Create deficit for weight loss
+        elif 'weight_gain' in goals:
+            calorie_adjustment = 500   # Create surplus for weight gain
+            
+        total_calories = int(tdee + calorie_adjustment)
+        
+        # Calculate macronutrients
+        # Protein: 1.6-2.2g per kg body weight for active individuals
+        protein_per_kg = 2.0 if 'muscle_gain' in goals else 1.6
+        protein_grams = int(weight * protein_per_kg)
+        
+        # Fat: 20-35% of total calories
+        fat_calories = total_calories * 0.25  # 25% of calories from fat
+        fat_grams = int(fat_calories / 9)  # 9 calories per gram of fat
+        
+        # Remaining calories from carbs
+        protein_calories = protein_grams * 4  # 4 calories per gram of protein
+        carb_calories = total_calories - protein_calories - fat_calories
+        carb_grams = int(carb_calories / 4)  # 4 calories per gram of carbs
+        
+        return {
+            "Calories": f"{total_calories} kcal",
+            "Protein": f"{protein_grams}g",
+            "Carbs": f"{carb_grams}g",
+            "Fat": f"{fat_grams}g"
+        }
+        
+    except Exception as e:
+        # Return default goals if any calculation errors occur
+        return default_goals
+
+def extract_nutrition_goals(nutrition_text: str, health_profile: dict = None, form_data: dict = None) -> dict:
+    """
+    Extract nutrition goals from AI response or calculate based on profile.
+    """
+    try:
+        # If we have health profile data, use calculated values
+        if health_profile:
+            return calculate_nutrition_goals(health_profile, form_data)
+            
+        # Otherwise try to extract from AI response or use defaults
         goals = {
             "Calories": "2000 kcal",
             "Protein": "75g",
@@ -858,7 +954,6 @@ def extract_nutrition_goals(nutrition_text: str) -> dict:
             "Fat": "65g"
         }
         
-        # Look for specific patterns
         patterns = {
             'calories': r'(\d+)(?:\s*)?(?:kcal|calories)',
             'protein': r'(\d+)(?:\s*)?g(?:\s*)?(?:of)?(?:\s*)?protein',
@@ -882,7 +977,6 @@ def extract_nutrition_goals(nutrition_text: str) -> dict:
         return goals
         
     except Exception as e:
-        logger.error(f"Error extracting nutrition goals: {str(e)}")
         return create_default_nutrition_goals()
 
 async def extract_menu_items(db, menu_categories: list, dietary_restrictions: list = None) -> list:
