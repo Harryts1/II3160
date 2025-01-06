@@ -682,9 +682,37 @@ async def get_recommendations(request: Request):
         response = await call_groq_api(prompt)
         ai_response = response['choices'][0]['message']['content']
         
-        # Process recommendations
-        nutrition_goals = extract_nutrition_goals(ai_response)
-        menu_items = await extract_menu_items(db, ['breakfast', 'lunch', 'dinner'], request_data.get('restrictions', []))
+        # Process recommendations dengan mengirimkan health_profile
+        nutrition_goals = extract_nutrition_goals(
+            ai_response,
+            health_profile=user_profile.get('health_profile'),
+            form_data=request_data
+        )
+        
+        # Dapatkan total kalori dari nutrition_goals
+        total_calories = int(nutrition_goals["Calories"].split()[0])  # "2000 kcal" -> 2000
+        
+        # Hitung distribusi kalori untuk setiap makanan
+        breakfast_calories = int(total_calories * 0.3)  # 30% dari total
+        lunch_calories = int(total_calories * 0.4)     # 40% dari total
+        dinner_calories = int(total_calories * 0.3)    # 30% dari total
+        
+        # Update menu items dengan kalori yang sesuai
+        menu_items = await extract_menu_items(
+            db, 
+            ['breakfast', 'lunch', 'dinner'],
+            request_data.get('restrictions', [])
+        )
+        
+        # Update kalori untuk setiap meal berdasarkan proporsi
+        for item in menu_items:
+            if "Breakfast" in item["name"]:
+                item["calories"] = f"{breakfast_calories} calories"
+            elif "Lunch" in item["name"]:
+                item["calories"] = f"{lunch_calories} calories"
+            elif "Dinner" in item["name"]:
+                item["calories"] = f"{dinner_calories} calories"
+        
         health_advice = extract_health_advice(ai_response)
         
         final_response = {
@@ -696,7 +724,7 @@ async def get_recommendations(request: Request):
         
         # Update atau insert diet plan
         await db.diet_plans.update_one(
-            {"user_id": user.get('email')},  # filter by user_id
+            {"user_id": user.get('email')},
             {
                 "$set": {
                     "recommendations": final_response,
@@ -705,7 +733,7 @@ async def get_recommendations(request: Request):
                     "updated_at": datetime.now()
                 }
             },
-            upsert=True  # create if not exists
+            upsert=True
         )
         
         return final_response
@@ -980,41 +1008,66 @@ def extract_nutrition_goals(nutrition_text: str, health_profile: dict = None, fo
         return create_default_nutrition_goals()
 
 async def extract_menu_items(db, menu_categories: list, dietary_restrictions: list = None) -> list:
-    """Extract menu items from database based on categories."""
+    """Extract menu items from database with proper calorie distribution."""
     try:
         menu_items = []
-        for category in ['breakfast', 'lunch', 'dinner']:
-            # Get menu items for this category
-            query = {"category": category}
-            cursor = db.menu_items.find(query)
-            category_items = await cursor.to_list(length=None)
-            
-            if category_items:
-                # Select one item randomly
-                selected_item = random.choice(category_items)
-                menu_items.append({
-                    "name": f"{category.title()}: {selected_item['name']}",
-                    "calories": f"{selected_item['nutrition_info']['calories']} calories",
-                    "description": selected_item['description']
-                })
-    
-        return menu_items if menu_items else [
-            {
-                "name": "Breakfast: Healthy Breakfast Bowl",
-                "calories": "350 calories",
+        default_items = {
+            'breakfast': {
+                "name": "Healthy Breakfast Bowl",
+                "calories": "500 calories",  # Will be overridden by calculated values
                 "description": "Nutritious breakfast with whole grains and fresh fruits"
             },
-            {
-                "name": "Lunch: Garden Fresh Plate",
-                "calories": "450 calories", 
+            'lunch': {
+                "name": "Garden Fresh Plate",
+                "calories": "700 calories",  # Will be overridden by calculated values
                 "description": "Balanced lunch with lean protein and vegetables"
             },
-            {
-                "name": "Dinner: Light Evening Meal",
-                "calories": "400 calories",
-                "description": "Light and nutritious dinner option"
+            'dinner': {
+                "name": "Grilled Fish with Vegetables",
+                "calories": "600 calories",  # Will be overridden by calculated values
+                "description": "Light and nutritious dinner option with lean protein"
             }
-        ]
+        }
+        
+        for category in ['breakfast', 'lunch', 'dinner']:
+            try:
+                # Get menu items for this category
+                query = {"category": category}
+                if dietary_restrictions:
+                    # Add dietary restrictions to query
+                    query["restrictions"] = {"$nin": dietary_restrictions}
+                    
+                cursor = db.menu_items.find(query)
+                category_items = await cursor.to_list(length=None)
+                
+                if category_items:
+                    # Select one item randomly
+                    selected_item = random.choice(category_items)
+                    menu_items.append({
+                        "name": f"{category.title()}: {selected_item['name']}",
+                        "calories": f"{selected_item['nutrition_info']['calories']} calories",
+                        "description": selected_item['description']
+                    })
+                else:
+                    # Use default item if no matching items found
+                    default_item = default_items[category]
+                    menu_items.append({
+                        "name": f"{category.title()}: {default_item['name']}",
+                        "calories": default_item['calories'],
+                        "description": default_item['description']
+                    })
+            except Exception as e:
+                logger.error(f"Error processing {category} menu items: {str(e)}")
+                # Use default item on error
+                default_item = default_items[category]
+                menu_items.append({
+                    "name": f"{category.title()}: {default_item['name']}",
+                    "calories": default_item['calories'],
+                    "description": default_item['description']
+                })
+    
+        return menu_items
+        
     except Exception as e:
         logger.error(f"Error extracting menu items: {str(e)}")
         raise e
