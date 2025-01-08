@@ -3,14 +3,14 @@ nixPkgs = ['python310', 'python310Packages.pip', 'python310Packages.setuptools',
 
 [phases.install]
 cmds = [
-  'python3 -m pip install --user --upgrade pip'
+  'python3 -m pip install --upgrade pip',
+  'python3 -m pip install "uvicorn[standard]" fastapi'
 ]
 
 [phases.build]
-dependsOn = ['install']
 cmds = [
   'cd src',
-  'python3 -m pip install --no-cache-dir -r requirements.txt'
+  'python3 -m pip install -r requirements.txt'
 ]
 
 [start]
