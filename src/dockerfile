@@ -1,6 +1,6 @@
 FROM python:3.9-slim
 
-# Set working directory
+# Set working directory to /app
 WORKDIR /app
 
 # Install system dependencies
@@ -17,19 +17,19 @@ RUN apt-get update && \
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PYTHONPATH=/app
+    PYTHONPATH=/app/src
 
-# Upgrade pip and setup tools
-RUN pip install --upgrade pip setuptools wheel
+# Copy the entire src directory
+COPY src/ /app/src/
 
-# Copy requirements first
-COPY requirements.txt .
+# Copy frontend files
+COPY src/frontend /app/src/frontend
 
-# Install Python dependencies with system packages breaking override
-RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
+# Set working directory to src
+WORKDIR /app/src
 
-# Copy the entire project
-COPY . .
+# Install Python dependencies
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose port
 EXPOSE 8000
