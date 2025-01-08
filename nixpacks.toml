@@ -1,15 +1,17 @@
 [phases.setup]
-nixPkgs = ['python39', 'python39Packages.pip']
-
-[phases.install]
-cmds = ['python -m pip install --upgrade pip']
+nixPkgs = [
+    'python39',
+    'python39Packages.pip',
+    'python39Packages.setuptools',
+    'python39Packages.wheel'
+]
 
 [phases.build]
 cmds = [
-  'ls -la',  # untuk debug
-  'pwd',     # untuk debug
-  'pip install --break-system-packages --no-cache-dir -r src/requirements.txt'
+    'cd src',
+    'pip3 install --break-system-packages --no-cache-dir -r requirements.txt'
 ]
 
 [start]
-cmd = 'uvicorn main:app --host 0.0.0.0 --port $PORT'
+cmd = 'cd src && uvicorn main:app --host 0.0.0.0 --port $PORT'
+workdir = 'src'
