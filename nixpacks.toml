@@ -4,8 +4,7 @@ nixPkgs = ['python39', 'python39Packages.pip']
 [phases.build]
 cmds = [
   'cd src',
-  'pip install --upgrade pip',  # Langsung gunakan pip yang disediakan Nix
-  'pip install --no-cache-dir -r requirements.txt'
+  'pip install --no-cache-dir -r requirements.txt'  # Langsung instal dependensi
 ]
 
 [start]

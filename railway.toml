@@ -10,3 +10,4 @@ restartPolicyType = "on_failure"
 [env]
 # Memastikan versi Python sesuai dengan setup Nixpacks
 PYTHON_VERSION = "3.9"
+PIP_BREAK_SYSTEM_PACKAGES = "1"
