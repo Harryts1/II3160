@@ -24,13 +24,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
 # Copy the project files
-COPY src/ src/
-COPY main.py .
-COPY .env .
-
-# Create necessary directories and copy frontend files
-RUN mkdir -p src/frontend
-COPY src/frontend/ src/frontend/
+COPY . .
 
 # Expose port
 EXPOSE 8000
