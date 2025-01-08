@@ -1,5 +1,6 @@
 FROM python:3.9-slim
 
+# Set working directory
 WORKDIR /app
 
 # Install system dependencies
@@ -16,15 +17,18 @@ RUN apt-get update && \
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    PIP_BREAK_SYSTEM_PACKAGES=1 
+    PYTHONPATH=/app
+
+# Upgrade pip and setup tools
+RUN pip install --upgrade pip setuptools wheel
 
 # Copy requirements first
 COPY requirements.txt .
 
-# Install Python dependencies tanpa upgrade pip
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies with system packages breaking override
+RUN pip install --break-system-packages --no-cache-dir -r requirements.txt
 
-# Copy the project files
+# Copy the entire project
 COPY . .
 
 # Expose port
