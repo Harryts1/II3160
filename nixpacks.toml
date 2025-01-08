@@ -4,7 +4,7 @@ nixPkgs = ['python39', 'python39Packages.pip']
 [phases.build]
 cmds = [
   'cd src',
-  'pip install --no-cache-dir -r requirements.txt'  # Langsung instal dependensi
+  'pip install --break-system-packages --no-cache-dir -r requirements.txt'
 ]
 
 [start]
