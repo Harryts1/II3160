@@ -1,15 +1,14 @@
 [phases.setup]
-nixPkgs = [
-    'python39',
-    'python39Packages.pip',
-    'python39Packages.setuptools',
-    'python39Packages.wheel'
-]
+nixPkgs = ['python39']
+
+[phases.install]
+cmds = ['python -m ensurepip --upgrade']
 
 [phases.build]
 cmds = [
-    'pip3 install --break-system-packages --no-cache-dir -r src/requirements.txt'
+  'pip install --no-cache-dir fastapi uvicorn',
+  'pip install --no-cache-dir -r src/requirements.txt'
 ]
 
 [start]
-cmd = 'cd src && uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug'
+cmd = 'cd src && PYTHONPATH=/app/src uvicorn main:app --host 0.0.0.0 --port $PORT'

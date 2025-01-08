@@ -32,6 +32,39 @@ from typing import Dict, Any
 import random
 import os
 
+# Configuration
+config = Config('.env')
+MONGO_URL = config('MONGO_URL', cast=str)
+AUTH0_CLIENT_ID = config('AUTH0_CLIENT_ID', cast=str)
+AUTH0_CLIENT_SECRET = config('AUTH0_CLIENT_SECRET', cast=str)
+AUTH0_DOMAIN = config('AUTH0_DOMAIN', cast=str)
+AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
+AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
+SECRET_KEY = config('SECRET_KEY', cast=str)
+GROQ_API_KEY = config('GROQ_API_KEY', cast=str)
+
+
+# FastAPI Setup
+app = FastAPI(
+    title="Health Based Dietary Catering API",
+    description="API for managing dietary plans with Auth0 authentication",
+    version="1.0.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
+    swagger_ui_init_oauth={
+        "clientId": AUTH0_CLIENT_ID,
+        "appName": "Health Based Dietary Catering",
+        "scopes": "openid profile email"
+    }
+)
+
+@app.get("/health")
+def health_check():
+    # Sangat sederhana, tidak ada async, tidak ada database check
+    return {"status": "ok"}
+
 # Initialize Groq
 groq_client = None
 
@@ -113,16 +146,6 @@ async def call_groq_api(prompt: str) -> Dict[str, Any]:
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
-config = Config('.env')
-MONGO_URL = config('MONGO_URL', cast=str)
-AUTH0_CLIENT_ID = config('AUTH0_CLIENT_ID', cast=str)
-AUTH0_CLIENT_SECRET = config('AUTH0_CLIENT_SECRET', cast=str)
-AUTH0_DOMAIN = config('AUTH0_DOMAIN', cast=str)
-AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
-AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
-SECRET_KEY = config('SECRET_KEY', cast=str)
-GROQ_API_KEY = config('GROQ_API_KEY', cast=str)
 
 # Global MongoDB connection
 mongodb_client = None
@@ -262,22 +285,6 @@ async def init_mongodb():
             status_code=500,
             detail=f"Database connection failed: {str(e)}"
         )
-
-# FastAPI Setup
-app = FastAPI(
-    title="Health Based Dietary Catering API",
-    description="API for managing dietary plans with Auth0 authentication",
-    version="1.0.0",
-    openapi_url="/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
-    swagger_ui_init_oauth={
-        "clientId": AUTH0_CLIENT_ID,
-        "appName": "Health Based Dietary Catering",
-        "scopes": "openid profile email"
-    }
-)
 
 @app.on_event("startup")
 async def startup_db_client():
@@ -453,18 +460,7 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail=str(e))
 
 # Routes
-@app.get("/health")
-async def health_check():
-    logger.info("Health check endpoint hit")
-    try:
-        # Tambahkan basic check ke database jika ada
-        if mongodb_client:
-            await mongodb_client.admin.command('ping')
-            logger.info("Database connection successful")
-        return {"status": "healthy", "timestamp": datetime.now().isoformat()}
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        raise HTTPException(status_code=500, detail=str(e))
+
 
 @app.get("/")
 async def serve_home():
