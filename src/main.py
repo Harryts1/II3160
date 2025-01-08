@@ -30,6 +30,7 @@ from fastapi.responses import FileResponse
 import re
 from typing import Dict, Any
 import random
+import os
 
 # Initialize Groq
 groq_client = None
@@ -343,6 +344,14 @@ async def startup_db_client():
         logger.error("MongoDB initialization failed!")
         raise e
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("Application is starting up...")
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info("Checking environment variables...")
+    for key, value in os.environ.items():
+        logger.info(f"{key}: {value}")
+
 @app.on_event("shutdown")
 async def shutdown_db_client():
     try:
@@ -446,7 +455,16 @@ async def get_current_user(request: Request):
 # Routes
 @app.get("/health")
 async def health_check():
-    return {"status": "healthy"}
+    logger.info("Health check endpoint hit")
+    try:
+        # Tambahkan basic check ke database jika ada
+        if mongodb_client:
+            await mongodb_client.admin.command('ping')
+            logger.info("Database connection successful")
+        return {"status": "healthy", "timestamp": datetime.now().isoformat()}
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.get("/")
 async def serve_home():
