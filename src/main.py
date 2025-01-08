@@ -444,6 +444,10 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail=str(e))
 
 # Routes
+@app.get("/II3160")
+async def health_check():
+    return {"status": "healthy"}
+
 @app.get("/")
 async def serve_home():
     return FileResponse('frontend/index.html')
