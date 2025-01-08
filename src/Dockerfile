@@ -1,5 +1,6 @@
 FROM python:3.9-slim
 
+# Set the working directory
 WORKDIR /II3160
 
 # Install system dependencies
@@ -17,17 +18,17 @@ ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
 # Copy requirements first
-COPY ./src/requirements.txt .
+COPY ./src/requirements.txt ./src/requirements.txt
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r requirements.txt
+    pip install --no-cache-dir -r ./src/requirements.txt
 
-# Copy all files from current directory
-COPY . .
+# Copy all files from the current directory
+COPY ./src /II3160/src
 
 # Expose port
 EXPOSE 8000
 
 # Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]      
+CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
