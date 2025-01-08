@@ -101,10 +101,15 @@ async def log_requests(request: Request, call_next):
         logger.error(f"Request failed: {str(e)}")
         raise
 
+@app.get("/")
+async def root():
+    logger.info("Root endpoint called")
+    return {"message": "API is running"}
+
 @app.get("/minimal-health")
 def minimal_health():
+    logger.info("Health check endpoint called")
     return {"status": "ok"}
-
 # Initialize Groq
 groq_client = None
 
@@ -321,70 +326,70 @@ async def init_mongodb():
             detail=f"Database connection failed: {str(e)}"
         )
 
-@app.on_event("startup")
-async def startup_db_client():
-    global mongodb_client, mongodb_db
-    try:
-        # Logging awal
-        logger.info("Starting MongoDB connection initialization...")
-        logger.info(f"Connecting to MongoDB at: {MONGO_URL[:20]}...")
+# @app.on_event("startup")
+# async def startup_db_client():
+#     global mongodb_client, mongodb_db
+#     try:
+#         # Logging awal
+#         logger.info("Starting MongoDB connection initialization...")
+#         logger.info(f"Connecting to MongoDB at: {MONGO_URL[:20]}...")
         
-        # Create MongoDB client with robust options
-        mongodb_client = AsyncIOMotorClient(
-            MONGO_URL,
-            serverSelectionTimeoutMS=10000,
-            connectTimeoutMS=10000,
-            socketTimeoutMS=10000,
-            maxPoolSize=10,
-            retryWrites=True,
-            retryReads=True
-        )
+#         # Create MongoDB client with robust options
+#         mongodb_client = AsyncIOMotorClient(
+#             MONGO_URL,
+#             serverSelectionTimeoutMS=10000,
+#             connectTimeoutMS=10000,
+#             socketTimeoutMS=10000,
+#             maxPoolSize=10,
+#             retryWrites=True,
+#             retryReads=True
+#         )
         
-        # Test connection
-        logger.info("Testing MongoDB connection...")
-        await mongodb_client.admin.command('ping')
+#         # Test connection
+#         logger.info("Testing MongoDB connection...")
+#         await mongodb_client.admin.command('ping')
         
-        # Get database
-        mongodb_db = mongodb_client.get_database('dietary_catering')
-        logger.info(f"Connected to database: {mongodb_db.name}")
+#         # Get database
+#         mongodb_db = mongodb_client.get_database('dietary_catering')
+#         logger.info(f"Connected to database: {mongodb_db.name}")
         
-        # List and create collections if needed
-        collections = await mongodb_db.list_collection_names()
-        logger.info(f"Existing collections: {collections}")
+#         # List and create collections if needed
+#         collections = await mongodb_db.list_collection_names()
+#         logger.info(f"Existing collections: {collections}")
         
-        required_collections = [
-            'users', 
-            'menu_items', 
-            'diet_plans', 
-        ]
+#         required_collections = [
+#             'users', 
+#             'menu_items', 
+#             'diet_plans', 
+#         ]
         
-        # Create missing collections
-        for collection in required_collections:
-            if collection not in collections:
-                logger.info(f"Creating collection: {collection}")
-                await mongodb_db.create_collection(collection)
+#         # Create missing collections
+#         for collection in required_collections:
+#             if collection not in collections:
+#                 logger.info(f"Creating collection: {collection}")
+#                 await mongodb_db.create_collection(collection)
         
-        # Create indexes
-        logger.info("Creating indexes...")
-        await mongodb_db.users.create_index("email", unique=True)
-        await mongodb_db.menu_items.create_index("name")
-        await mongodb_db.diet_plans.create_index("user_id")
+#         # Create indexes
+#         logger.info("Creating indexes...")
+#         await mongodb_db.users.create_index("email", unique=True)
+#         await mongodb_db.menu_items.create_index("name")
+#         await mongodb_db.diet_plans.create_index("user_id")
         
-        # Verify final state
-        final_collections = await mongodb_db.list_collection_names()
-        logger.info(f"Final collections in database: {final_collections}")
+#         # Verify final state
+#         final_collections = await mongodb_db.list_collection_names()
+#         logger.info(f"Final collections in database: {final_collections}")
         
-        # Test write operation
-        test_result = await mongodb_db.command("ping")
-        logger.info(f"Database write test result: {test_result}")
+#         # Test write operation
+#         test_result = await mongodb_db.command("ping")
+#         logger.info(f"Database write test result: {test_result}")
         
-        logger.info("MongoDB initialization completed successfully!")
+#         logger.info("MongoDB initialization completed successfully!")
         
-    except Exception as e:
-        logger.error(f"Failed to initialize MongoDB: {str(e)}")
-        logger.error(f"Error type: {type(e)}")
-        logger.error("MongoDB initialization failed!")
-        raise e
+#     except Exception as e:
+#         logger.error(f"Failed to initialize MongoDB: {str(e)}")
+#         logger.error(f"Error type: {type(e)}")
+#         logger.error("MongoDB initialization failed!")
+#         raise e
 
 @app.on_event("startup")
 async def startup_event():
@@ -497,9 +502,9 @@ async def get_current_user(request: Request):
 # Routes
 
 
-@app.get("/")
-async def serve_home():
-    return FileResponse('src/frontend/index.html')
+# @app.get("/")
+# async def serve_home():
+#     return FileResponse('src/frontend/index.html')
 
 @app.get("/login")
 async def login(request: Request):

@@ -2,15 +2,13 @@
 builder = "nixpacks"
 
 [deploy]
-startCommand = "uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug"
+startCommand = "cd src && python -m uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug"
 healthcheckPath = "/minimal-health"
-healthcheckTimeout = 120
+healthcheckTimeout = 60
 restartPolicyType = "on_failure"
-healthcheckInterval = 30
+healthcheckInterval = 15
 healthcheckMaxRetries = 3
 
 [env]
 PYTHON_VERSION = "3.9"
 PORT = "8000"
-LOG_LEVEL = "debug"
-PYTHONUNBUFFERED = "1"
