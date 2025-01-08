@@ -4,8 +4,10 @@ nixPkgs = ['python39']
 [phases.build]
 cmds = [
   'cd src',
+  'python -m pip install --upgrade pip',
   'pip install -r requirements.txt'
 ]
 
 [start]
 cmd = 'cd src && uvicorn main:app --host 0.0.0.0 --port $PORT'
+workdir = 'src'
