@@ -7,10 +7,32 @@ services:
       - "8000:8000"
     volumes:
       - .:/app
+      - /app/node_modules 
     environment:
+      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
       - AUTH0_CLIENT_ID=${AUTH0_CLIENT_ID}
       - AUTH0_CLIENT_SECRET=${AUTH0_CLIENT_SECRET}
-      - AUTH0_DOMAIN=${AUTH0_DOMAIN}
       - AUTH0_CALLBACK_URL=${AUTH0_CALLBACK_URL}
       - AUTH0_AUDIENCE=${AUTH0_AUDIENCE}
       - SECRET_KEY=${SECRET_KEY}
+      - MONGO_URL=${MONGO_URL}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+    env_file:
+      - .env
+    command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      - mongodb
+
+  mongodb:
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=mongo
+      - MONGO_INITDB_ROOT_PASSWORD=mongo
+
+volumes:
+  mongodb_data:
+    driver: local
