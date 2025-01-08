@@ -444,9 +444,8 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail=str(e))
 
 # Routes
-@app.get("/II3160")
+@app.get("/health")
 async def health_check():
-    logger.info("Health check endpoint called")  # Tambahkan logging
     return {"status": "healthy"}
 
 @app.get("/")
