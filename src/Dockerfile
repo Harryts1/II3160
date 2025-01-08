@@ -1,8 +1,10 @@
+# Gunakan base image Python 3.9-slim
 FROM python:3.9-slim
 
+# Tentukan working directory di dalam container
 WORKDIR /II3160
 
-# Install system dependencies
+# Install dependencies sistem yang diperlukan
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
     gcc \
@@ -16,21 +18,18 @@ RUN apt-get update && \
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1
 
-# Copy requirements first
-COPY requirements.txt .
+# Salin file requirements.txt dari folder src
+COPY ./src/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 
-# Copy all files from current directory
+# Salin semua file ke dalam container
 COPY . .
 
-# Create necessary directories if needed
-RUN mkdir -p frontend
-
-# Expose port
+# Expose port untuk aplikasi
 EXPOSE 8000
 
-# Command to run the application
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]      
+# Perintah untuk menjalankan aplikasi
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
