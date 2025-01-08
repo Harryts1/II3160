@@ -60,9 +60,49 @@ app = FastAPI(
     }
 )
 
+# Setup logging
+logging.basicConfig(level=logging.DEBUG)
+logger = logging.getLogger(__name__)
+
+# Tambahkan di bagian awal setelah inisialisasi app
+@app.on_event("startup")
+async def startup_event():
+    logger.debug("Starting up application...")
+    logger.debug(f"Current working directory: {os.getcwd()}")
+    logger.debug(f"Directory contents: {os.listdir()}")
+    try:
+        await mongodb_client.admin.command('ping')
+        logger.debug("MongoDB connection successful")
+    except Exception as e:
+        logger.error(f"MongoDB connection failed: {str(e)}")
+
 @app.get("/health")
-def health_check():
-    # Sangat sederhana, tidak ada async, tidak ada database check
+async def health_check():
+    logger.debug("Health check endpoint hit")
+    try:
+        # Simpel check ke MongoDB
+        if mongodb_client:
+            await mongodb_client.admin.command('ping')
+            logger.debug("MongoDB health check passed")
+            return {"status": "ok", "database": "connected"}
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        # Tetap return ok meskipun database error
+        return {"status": "ok", "database": "error"}
+    
+@app.middleware("http")
+async def log_requests(request: Request, call_next):
+    logger.debug(f"Request path: {request.url.path}")
+    try:
+        response = await call_next(request)
+        logger.debug(f"Response status: {response.status_code}")
+        return response
+    except Exception as e:
+        logger.error(f"Request failed: {str(e)}")
+        raise
+
+@app.get("/minimal-health")
+def minimal_health():
     return {"status": "ok"}
 
 # Initialize Groq
@@ -141,11 +181,6 @@ async def call_groq_api(prompt: str) -> Dict[str, Any]:
         response = await client.post(url, json=payload, headers=headers)
         response.raise_for_status()
         return response.json()
-
-# Set up logging
-logging.basicConfig(level=logging.INFO)
-logger = logging.getLogger(__name__)
-
 
 # Global MongoDB connection
 mongodb_client = None
