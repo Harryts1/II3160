@@ -1,13 +1,17 @@
 [phases.setup]
-nixPkgs = ['python39', 'gcc']
+nixPkgs = ['python310', 'python310Packages.pip', 'python310Packages.setuptools', 'python310Packages.wheel']
 
 [phases.install]
-cmds = ['python -m pip install --upgrade pip']
+cmds = [
+  'python3 -m pip install --user --upgrade pip'
+]
 
 [phases.build]
+dependsOn = ['install']
 cmds = [
-  'pip install fastapi "uvicorn[standard]" gunicorn'
+  'cd src',
+  'python3 -m pip install --no-cache-dir -r requirements.txt'
 ]
 
 [start]
-cmd = 'gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120'
+cmd = 'cd src && python3 -m uvicorn main:app --host 0.0.0.0 --port $PORT'
