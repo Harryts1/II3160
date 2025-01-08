@@ -8,11 +8,8 @@ nixPkgs = [
 
 [phases.build]
 cmds = [
-    'mkdir -p /app/src',
-    'cp -r src/* /app/src/',
-    'cd /app/src && pip3 install --break-system-packages --no-cache-dir -r requirements.txt'
+    'pip3 install --break-system-packages --no-cache-dir -r src/requirements.txt'
 ]
 
 [start]
-cmd = 'cd /app/src && uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug'
-workdir = '/app/src'
+cmd = 'cd src && uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug'
