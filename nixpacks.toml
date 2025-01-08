@@ -1,10 +1,13 @@
 [phases.setup]
-nixPkgs = ['python39']
+nixPkgs = ['python39', 'gcc']
+
+[phases.install]
+cmds = ['python -m pip install --upgrade pip']
 
 [phases.build]
 cmds = [
-  'pip install fastapi uvicorn'
+  'pip install fastapi "uvicorn[standard]" gunicorn'
 ]
 
 [start]
-cmd = 'python -m uvicorn main:app --host 0.0.0.0 --port $PORT --log-level debug'
+cmd = 'gunicorn main:app --workers 4 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:$PORT --timeout 120'

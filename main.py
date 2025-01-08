@@ -125,6 +125,7 @@ async def root():
 
 @app.get("/minimal-health")
 async def minimal_health():
+    logger.info("Health check endpoint called")
     return {"status": "ok"}
 
 # Initialize Groq
