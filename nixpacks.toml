@@ -1,11 +1,13 @@
 [phases.setup]
-nixPkgs = ['python39']
+# Menambahkan Python dan pip ke daftar paket Nix
+nixPkgs = ['python39', 'python39Packages.pip']
 
 [phases.build]
 cmds = [
-  'cd src',
-  'python -m pip install --upgrade pip',
-  'pip install -r requirements.txt'
+  'cd src',                                # Masuk ke direktori sumber
+  'python3 -m ensurepip',                  # Pastikan pip tersedia
+  'python3 -m pip install --upgrade pip',  # Perbarui pip
+  'python3 -m pip install --no-cache-dir -r requirements.txt'  # Instal dependensi Python
 ]
 
 [start]

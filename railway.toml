@@ -8,4 +8,5 @@ healthcheckTimeout = 100
 restartPolicyType = "on_failure"
 
 [env]
+# Memastikan versi Python sesuai dengan setup Nixpacks
 PYTHON_VERSION = "3.9"
