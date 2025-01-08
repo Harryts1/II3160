@@ -1,9 +1,14 @@
 [phases.setup]
 nixPkgs = ['python39', 'python39Packages.pip']
 
+[phases.install]
+cmds = ['python -m pip install --upgrade pip']
+
 [phases.build]
 cmds = [
-  'pip install --break-system-packages --no-cache-dir -r requirements.txt'
+  'ls -la',  # untuk debug
+  'pwd',     # untuk debug
+  'pip install --break-system-packages --no-cache-dir -r src/requirements.txt'
 ]
 
 [start]
