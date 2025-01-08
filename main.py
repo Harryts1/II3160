@@ -375,7 +375,7 @@ async def shutdown_db_client():
         logger.info("MongoDB connection closed")
 
 # Setup templates
-templates = Jinja2Templates(directory="frontend")
+templates = Jinja2Templates(directory="src/frontend")
 
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -464,7 +464,7 @@ async def get_current_user(request: Request):
 
 @app.get("/")
 async def serve_home():
-    return FileResponse('frontend/index.html')
+    return FileResponse('src/frontend/index.html')
 
 @app.get("/login")
 async def login(request: Request):
@@ -600,7 +600,7 @@ async def complete_profile(request: Request):
             if db_user and db_user.get('health_profile', {}).get('age', 0) > 0:
                 return RedirectResponse(url='/dashboard')
         
-        return FileResponse('frontend/dashboard.html')("complete_profile.html", {
+        return FileResponse('src/frontend/dashboard.html')("complete_profile.html", {
             "request": request, 
             "user": user
         })
@@ -1100,4 +1100,4 @@ def create_default_nutrition_goals() -> dict:
     }
 
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+app.mount("/", StaticFiles(directory="src/frontend", html=True), name="frontend")
