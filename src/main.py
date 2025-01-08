@@ -32,102 +32,6 @@ from typing import Dict, Any
 import random
 import os
 
-# Configuration
-config = Config('.env')
-MONGO_URL = config('MONGO_URL', cast=str)
-AUTH0_CLIENT_ID = config('AUTH0_CLIENT_ID', cast=str)
-AUTH0_CLIENT_SECRET = config('AUTH0_CLIENT_SECRET', cast=str)
-AUTH0_DOMAIN = config('AUTH0_DOMAIN', cast=str)
-AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
-AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
-SECRET_KEY = config('SECRET_KEY', cast=str)
-GROQ_API_KEY = config('GROQ_API_KEY', cast=str)
-
-
-# FastAPI Setup
-app = FastAPI(
-    title="Health Based Dietary Catering API",
-    description="API for managing dietary plans with Auth0 authentication",
-    version="1.0.0",
-    openapi_url="/openapi.json",
-    docs_url="/docs",
-    redoc_url="/redoc",
-    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
-    swagger_ui_init_oauth={
-        "clientId": AUTH0_CLIENT_ID,
-        "appName": "Health Based Dietary Catering",
-        "scopes": "openid profile email"
-    }
-)
-
-# Setup logging
-logging.basicConfig(level=logging.DEBUG)
-logger = logging.getLogger(__name__)
-
-# Tambahkan di bagian awal setelah inisialisasi app
-@app.on_event("startup")
-async def startup_event():
-    logger.info("Application is starting up...")
-    
-    # Add a small delay to ensure proper initialization
-    await asyncio.sleep(5)
-    
-    logger.info(f"Current working directory: {os.getcwd()}")
-    logger.info("Checking environment variables...")
-    
-    try:
-        # Only attempt MongoDB connection if URL is configured
-        if MONGO_URL:
-            client = AsyncIOMotorClient(
-                MONGO_URL,
-                serverSelectionTimeoutMS=5000,
-                connectTimeoutMS=5000,
-                socketTimeoutMS=5000,
-                maxPoolSize=1
-            )
-            await client.admin.command('ping')
-            logger.info("MongoDB connection successful")
-    except Exception as e:
-        # Log error but don't fail startup
-        logger.error(f"MongoDB connection failed: {str(e)}")
-        
-    logger.info("Startup complete")
-
-@app.get("/health")
-async def health_check():
-    logger.debug("Health check endpoint hit")
-    try:
-        # Simpel check ke MongoDB
-        if mongodb_client:
-            await mongodb_client.admin.command('ping')
-            logger.debug("MongoDB health check passed")
-            return {"status": "ok", "database": "connected"}
-    except Exception as e:
-        logger.error(f"Health check failed: {str(e)}")
-        # Tetap return ok meskipun database error
-        return {"status": "ok", "database": "error"}
-    
-@app.middleware("http")
-async def log_requests(request: Request, call_next):
-    logger.debug(f"Request path: {request.url.path}")
-    try:
-        response = await call_next(request)
-        logger.debug(f"Response status: {response.status_code}")
-        return response
-    except Exception as e:
-        logger.error(f"Request failed: {str(e)}")
-        raise
-
-@app.get("/")
-async def root():
-    logger.info("Root endpoint called")
-    return {"message": "API is running"}
-
-@app.get("/minimal-health")
-async def minimal_health():
-    logger.info("Health check endpoint called")
-    return {"status": "ok"}
-
 # Initialize Groq
 groq_client = None
 
@@ -204,6 +108,21 @@ async def call_groq_api(prompt: str) -> Dict[str, Any]:
         response = await client.post(url, json=payload, headers=headers)
         response.raise_for_status()
         return response.json()
+
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Configuration
+config = Config('.env')
+MONGO_URL = config('MONGO_URL', cast=str)
+AUTH0_CLIENT_ID = config('AUTH0_CLIENT_ID', cast=str)
+AUTH0_CLIENT_SECRET = config('AUTH0_CLIENT_SECRET', cast=str)
+AUTH0_DOMAIN = config('AUTH0_DOMAIN', cast=str)
+AUTH0_CALLBACK_URL = config('AUTH0_CALLBACK_URL', cast=str)
+AUTH0_AUDIENCE = config('AUTH0_AUDIENCE', cast=str)
+SECRET_KEY = config('SECRET_KEY', cast=str)
+GROQ_API_KEY = config('GROQ_API_KEY', cast=str)
 
 # Global MongoDB connection
 mongodb_client = None
@@ -344,70 +263,86 @@ async def init_mongodb():
             detail=f"Database connection failed: {str(e)}"
         )
 
-# @app.on_event("startup")
-# async def startup_db_client():
-#     global mongodb_client, mongodb_db
-#     try:
-#         # Logging awal
-#         logger.info("Starting MongoDB connection initialization...")
-#         logger.info(f"Connecting to MongoDB at: {MONGO_URL[:20]}...")
+# FastAPI Setup
+app = FastAPI(
+    title="Health Based Dietary Catering API",
+    description="API for managing dietary plans with Auth0 authentication",
+    version="1.0.0",
+    openapi_url="/openapi.json",
+    docs_url="/docs",
+    redoc_url="/redoc",
+    swagger_ui_oauth2_redirect_url="/oauth2-redirect",
+    swagger_ui_init_oauth={
+        "clientId": AUTH0_CLIENT_ID,
+        "appName": "Health Based Dietary Catering",
+        "scopes": "openid profile email"
+    }
+)
+
+@app.on_event("startup")
+async def startup_db_client():
+    global mongodb_client, mongodb_db
+    try:
+        # Logging awal
+        logger.info("Starting MongoDB connection initialization...")
+        logger.info(f"Connecting to MongoDB at: {MONGO_URL[:20]}...")
         
-#         # Create MongoDB client with robust options
-#         mongodb_client = AsyncIOMotorClient(
-#             MONGO_URL,
-#             serverSelectionTimeoutMS=10000,
-#             connectTimeoutMS=10000,
-#             socketTimeoutMS=10000,
-#             maxPoolSize=10,
-#             retryWrites=True,
-#             retryReads=True
-#         )
+        # Create MongoDB client with robust options
+        mongodb_client = AsyncIOMotorClient(
+            MONGO_URL,
+            serverSelectionTimeoutMS=10000,
+            connectTimeoutMS=10000,
+            socketTimeoutMS=10000,
+            maxPoolSize=10,
+            retryWrites=True,
+            retryReads=True
+        )
         
-#         # Test connection
-#         logger.info("Testing MongoDB connection...")
-#         await mongodb_client.admin.command('ping')
+        # Test connection
+        logger.info("Testing MongoDB connection...")
+        await mongodb_client.admin.command('ping')
         
-#         # Get database
-#         mongodb_db = mongodb_client.get_database('dietary_catering')
-#         logger.info(f"Connected to database: {mongodb_db.name}")
+        # Get database
+        mongodb_db = mongodb_client.get_database('dietary_catering')
+        logger.info(f"Connected to database: {mongodb_db.name}")
         
-#         # List and create collections if needed
-#         collections = await mongodb_db.list_collection_names()
-#         logger.info(f"Existing collections: {collections}")
+        # List and create collections if needed
+        collections = await mongodb_db.list_collection_names()
+        logger.info(f"Existing collections: {collections}")
         
-#         required_collections = [
-#             'users', 
-#             'menu_items', 
-#             'diet_plans', 
-#         ]
+        required_collections = [
+            'users', 
+            'menu_items', 
+            'diet_plans', 
+        ]
         
-#         # Create missing collections
-#         for collection in required_collections:
-#             if collection not in collections:
-#                 logger.info(f"Creating collection: {collection}")
-#                 await mongodb_db.create_collection(collection)
+        # Create missing collections
+        for collection in required_collections:
+            if collection not in collections:
+                logger.info(f"Creating collection: {collection}")
+                await mongodb_db.create_collection(collection)
         
-#         # Create indexes
-#         logger.info("Creating indexes...")
-#         await mongodb_db.users.create_index("email", unique=True)
-#         await mongodb_db.menu_items.create_index("name")
-#         await mongodb_db.diet_plans.create_index("user_id")
+        # Create indexes
+        logger.info("Creating indexes...")
+        await mongodb_db.users.create_index("email", unique=True)
+        await mongodb_db.menu_items.create_index("name")
+        await mongodb_db.diet_plans.create_index("user_id")
         
-#         # Verify final state
-#         final_collections = await mongodb_db.list_collection_names()
-#         logger.info(f"Final collections in database: {final_collections}")
+        # Verify final state
+        final_collections = await mongodb_db.list_collection_names()
+        logger.info(f"Final collections in database: {final_collections}")
         
-#         # Test write operation
-#         test_result = await mongodb_db.command("ping")
-#         logger.info(f"Database write test result: {test_result}")
+        # Test write operation
+        test_result = await mongodb_db.command("ping")
+        logger.info(f"Database write test result: {test_result}")
         
-#         logger.info("MongoDB initialization completed successfully!")
+        logger.info("MongoDB initialization completed successfully!")
         
-#     except Exception as e:
-#         logger.error(f"Failed to initialize MongoDB: {str(e)}")
-#         logger.error(f"Error type: {type(e)}")
-#         logger.error("MongoDB initialization failed!")
-#         raise e
+    except Exception as e:
+        logger.error(f"Failed to initialize MongoDB: {str(e)}")
+        logger.error(f"Error type: {type(e)}")
+        logger.error("MongoDB initialization failed!")
+        raise e
 
 @app.on_event("startup")
 async def startup_event():
@@ -433,7 +368,7 @@ async def shutdown_db_client():
         logger.info("MongoDB connection closed")
 
 # Setup templates
-templates = Jinja2Templates(directory="src/frontend")
+templates = Jinja2Templates(directory="frontend")
 
 # Add CORS middleware
 from fastapi.middleware.cors import CORSMiddleware
@@ -518,11 +453,14 @@ async def get_current_user(request: Request):
         raise HTTPException(status_code=401, detail=str(e))
 
 # Routes
+@app.get("/health")
+def health_check():
+    # Sangat sederhana, tidak ada async, tidak ada database check
+    return {"status": "ok"}
 
-
-# @app.get("/")
-# async def serve_home():
-#     return FileResponse('src/frontend/index.html')
+@app.get("/")
+async def serve_home():
+    return FileResponse('frontend/index.html')
 
 @app.get("/login")
 async def login(request: Request):
@@ -658,7 +596,7 @@ async def complete_profile(request: Request):
             if db_user and db_user.get('health_profile', {}).get('age', 0) > 0:
                 return RedirectResponse(url='/dashboard')
         
-        return FileResponse('src/frontend/dashboard.html')("complete_profile.html", {
+        return FileResponse('frontend/dashboard.html')("complete_profile.html", {
             "request": request, 
             "user": user
         })
@@ -1158,4 +1096,4 @@ def create_default_nutrition_goals() -> dict:
     }
 
 
-app.mount("/", StaticFiles(directory="src/frontend", html=True), name="frontend")
+app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
