@@ -20,10 +20,12 @@ ENV PYTHONUNBUFFERED=1 \
 # Create virtual environment
 RUN python3 -m venv /app/venv
 
-# Activate virtual environment and install dependencies
+# Copy requirements first
 COPY requirements.txt .
-RUN /app/venv/bin/pip install --upgrade pip && \
-    /app/venv/bin/pip install --no-cache-dir -r requirements.txt
+
+# Activate virtual environment and install dependencies
+RUN /app/venv/bin/python -m pip install --upgrade pip && \
+    /app/venv/bin/python -m pip install --no-cache-dir -r requirements.txt
 
 # Copy project files
 COPY . .
