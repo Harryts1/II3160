@@ -446,6 +446,7 @@ async def get_current_user(request: Request):
 # Routes
 @app.get("/II3160")
 async def health_check():
+    logger.info("Health check endpoint called")  # Tambahkan logging
     return {"status": "healthy"}
 
 @app.get("/")
