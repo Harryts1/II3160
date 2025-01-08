@@ -15,15 +15,14 @@ RUN apt-get update && \
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PIP_BREAK_SYSTEM_PACKAGES=1  
+    PIP_NO_CACHE_DIR=1 \
+    PIP_BREAK_SYSTEM_PACKAGES=1 
 
 # Copy requirements first
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN python3 -m ensurepip && \
-    python3 -m pip install --upgrade pip && \
-    python3 -m pip install --no-cache-dir -r requirements.txt
+# Install Python dependencies tanpa upgrade pip
+RUN python3 -m pip install --no-cache-dir -r requirements.txt
 
 # Copy the project files
 COPY . .
