@@ -3,7 +3,7 @@ nixPkgs = ['python39', 'python39Packages.pip']
 
 [phases.build]
 cmds = [
-  'pip install --break-system-packages --no-cache-dir -r requirements.txt'
+  'pip install --break-system-packages --no-cache-dir -r src/requirements.txt'
 ]
 
 [start]
