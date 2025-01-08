@@ -67,14 +67,31 @@ logger = logging.getLogger(__name__)
 # Tambahkan di bagian awal setelah inisialisasi app
 @app.on_event("startup")
 async def startup_event():
-    logger.debug("Starting up application...")
-    logger.debug(f"Current working directory: {os.getcwd()}")
-    logger.debug(f"Directory contents: {os.listdir()}")
+    logger.info("Application is starting up...")
+    
+    # Add a small delay to ensure proper initialization
+    await asyncio.sleep(5)
+    
+    logger.info(f"Current working directory: {os.getcwd()}")
+    logger.info("Checking environment variables...")
+    
     try:
-        await mongodb_client.admin.command('ping')
-        logger.debug("MongoDB connection successful")
+        # Only attempt MongoDB connection if URL is configured
+        if MONGO_URL:
+            client = AsyncIOMotorClient(
+                MONGO_URL,
+                serverSelectionTimeoutMS=5000,
+                connectTimeoutMS=5000,
+                socketTimeoutMS=5000,
+                maxPoolSize=1
+            )
+            await client.admin.command('ping')
+            logger.info("MongoDB connection successful")
     except Exception as e:
+        # Log error but don't fail startup
         logger.error(f"MongoDB connection failed: {str(e)}")
+        
+    logger.info("Startup complete")
 
 @app.get("/health")
 async def health_check():
@@ -107,9 +124,9 @@ async def root():
     return {"message": "API is running"}
 
 @app.get("/minimal-health")
-def minimal_health():
-    logger.info("Health check endpoint called")
+async def minimal_health():
     return {"status": "ok"}
+
 # Initialize Groq
 groq_client = None
 
