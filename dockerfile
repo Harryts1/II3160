@@ -1,6 +1,6 @@
 FROM python:3.9-slim
 
-WORKDIR /app
+WORKDIR /II3160
 
 # Install system dependencies
 RUN apt-get update && \
