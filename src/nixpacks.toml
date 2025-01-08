@@ -1,5 +1,0 @@
-[phases.setup]
-nixPkgs = ['python39']
-
-[phases.build]
-cmds = ["true"]
