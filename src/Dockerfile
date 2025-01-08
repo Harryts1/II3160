@@ -1,6 +1,5 @@
 FROM python:3.9-slim
 
-# Set the working directory
 WORKDIR /II3160
 
 # Install system dependencies
@@ -15,20 +14,24 @@ RUN apt-get update && \
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1
+    PYTHONDONTWRITEBYTECODE=1 \
+    PORT=8000
 
 # Copy requirements first
-COPY ./src/requirements.txt ./src/requirements.txt
+COPY src/requirements.txt .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir -r ./src/requirements.txt
+    pip install --no-cache-dir -r requirements.txt
 
-# Copy all files from the current directory
-COPY ./src /II3160/src
+# Copy all files from current directory
+COPY src/ /app
+
+# Create necessary directories if needed
+RUN mkdir -p frontend
 
 # Expose port
-EXPOSE 8000
+EXPOSE $PORT
 
 # Command to run the application
-CMD ["uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000"]
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]   
