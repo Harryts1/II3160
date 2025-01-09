@@ -8,6 +8,8 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/toastify-js/1.12.0/toastify.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.7.0/chart.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/toastify-js/src/toastify.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/toastify-js"></script>
 </head>
 <body class="bg-gray-100 min-h-screen">
     <!-- Navigation -->
@@ -227,7 +229,6 @@
             </div>
         </div>
         
-        <!-- Reviews Tab -->
         <div id="reviews-tab" class="tab-content hidden">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Reviews Summary Card -->
@@ -235,18 +236,11 @@
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h3 class="text-xl font-bold mb-4">Reviews Summary</h3>
                         <div class="space-y-4">
-                            <!-- Overall Rating -->
                             <div class="text-center">
                                 <div class="text-4xl font-bold text-emerald-500" id="averageRating">0.0</div>
                                 <div class="text-sm text-gray-600">Average Rating</div>
                             </div>
                             
-                            <!-- Rating Distribution -->
-                            <div>
-                                <canvas id="ratingDistributionChart"></canvas>
-                            </div>
-                            
-                            <!-- Total Reviews -->
                             <div class="text-center pt-4 border-t">
                                 <div class="text-2xl font-bold text-gray-700" id="totalReviews">0</div>
                                 <div class="text-sm text-gray-600">Total Reviews</div>
@@ -254,48 +248,38 @@
                         </div>
                     </div>
                 </div>
-
+        
                 <!-- Reviews Content -->
                 <div class="lg:col-span-2">
                     <!-- Write Review Form -->
                     <div class="bg-white rounded-lg shadow-lg p-6 mb-6">
                         <h3 class="text-xl font-bold mb-4">Write a Review</h3>
                         <form id="reviewForm" class="space-y-4">
-                            <!-- Rating Selection -->
+                            <!-- Rating Input -->
                             <div>
                                 <label class="block text-gray-700 font-medium mb-2">Rating</label>
-                                <div class="flex gap-2">
-                                    <div class="star-rating flex space-x-1">
-                                        <input type="radio" id="star5" name="rating" value="5" class="hidden" />
-                                        <label for="star5" class="text-2xl cursor-pointer text-gray-300 hover:text-yellow-400">★</label>
-                                        
-                                        <input type="radio" id="star4" name="rating" value="4" class="hidden" />
-                                        <label for="star4" class="text-2xl cursor-pointer text-gray-300 hover:text-yellow-400">★</label>
-                                        
-                                        <input type="radio" id="star3" name="rating" value="3" class="hidden" />
-                                        <label for="star3" class="text-2xl cursor-pointer text-gray-300 hover:text-yellow-400">★</label>
-                                        
-                                        <input type="radio" id="star2" name="rating" value="2" class="hidden" />
-                                        <label for="star2" class="text-2xl cursor-pointer text-gray-300 hover:text-yellow-400">★</label>
-                                        
-                                        <input type="radio" id="star1" name="rating" value="1" class="hidden" />
-                                        <label for="star1" class="text-2xl cursor-pointer text-gray-300 hover:text-yellow-400">★</label>
-                                    </div>
-                                </div>
+                                <input 
+                                    type="number" 
+                                    name="rating" 
+                                    min="1" 
+                                    max="5" 
+                                    required
+                                    class="w-full p-2 border rounded focus:ring-2 focus:ring-emerald-500"
+                                />
                             </div>
-
+        
                             <!-- Review Text -->
                             <div>
                                 <label class="block text-gray-700 font-medium mb-2">Your Review</label>
                                 <textarea 
                                     name="comment" 
                                     rows="4" 
+                                    required
                                     class="w-full p-3 border rounded-lg focus:ring-2 focus:ring-emerald-500"
                                     placeholder="Share your thoughts about our service..."
-                                    required
                                 ></textarea>
                             </div>
-
+        
                             <!-- Submit Button -->
                             <button 
                                 type="submit" 
@@ -305,7 +289,7 @@
                             </button>
                         </form>
                     </div>
-
+        
                     <!-- Reviews List -->
                     <div class="bg-white rounded-lg shadow-lg p-6">
                         <h3 class="text-xl font-bold mb-4">Customer Reviews</h3>
@@ -318,7 +302,7 @@
                     </div>
                 </div>
             </div>
-        </div>                         
+        </div>
     </main>
 
     <!-- WhatsApp Button -->
@@ -576,204 +560,6 @@
             }
         });
 
-         // Reviews functionality
-         document.addEventListener('DOMContentLoaded', function() {
-            // Initialize star rating system
-            initStarRating();
-            
-            // Add review form submission handler
-            const reviewForm = document.getElementById('reviewForm');
-            if (reviewForm) {
-                reviewForm.addEventListener('submit', handleReviewSubmit);
-            }
-        });
-
-        function initStarRating() {
-            const starLabels = document.querySelectorAll('.star-rating label');
-            starLabels.forEach((label, index) => {
-                label.addEventListener('mouseover', () => {
-                    // Highlight stars up to the current one
-                    starLabels.forEach((star, i) => {
-                        star.classList.toggle('text-yellow-400', i <= index);
-                        star.classList.toggle('text-gray-300', i > index);
-                    });
-                });
-            });
-
-            // Reset stars when mouse leaves the rating container
-            document.querySelector('.star-rating').addEventListener('mouseleave', () => {
-                const selectedRating = document.querySelector('input[name="rating"]:checked');
-                if (!selectedRating) {
-                    starLabels.forEach(star => {
-                        star.classList.remove('text-yellow-400');
-                        star.classList.add('text-gray-300');
-                    });
-                }
-            });
-        }
-
-        async function fetchReviews() {
-            const reviewsList = document.getElementById('reviewsList');
-            try {
-                const response = await fetch('https://smart-health-tst.up.railway.app/api/reviews?productId=1');
-                if (!response.ok) throw new Error('Failed to fetch reviews');
-                
-                const reviews = await response.json();
-                updateReviewsStatistics(reviews);
-                displayReviews(reviews);
-            } catch (error) {
-                console.error('Error:', error);
-                reviewsList.innerHTML = `
-                    <div class="text-red-500 p-4 rounded-lg bg-red-50">
-                        Failed to load reviews. Please try again later.
-                    </div>
-                `;
-            }
-        }
-
-        function updateReviewsStatistics(reviews) {
-            // Update average rating
-            const avgRating = reviews.length > 0 
-                ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-                : '0.0';
-            document.getElementById('averageRating').textContent = avgRating;
-            
-            // Update total reviews
-            document.getElementById('totalReviews').textContent = reviews.length;
-            
-            // Update rating distribution chart
-            updateRatingChart(reviews);
-        }
-
-        function updateRatingChart(reviews) {
-            const ctx = document.getElementById('ratingDistributionChart').getContext('2d');
-            
-            // Calculate rating distribution
-            const distribution = Array(5).fill(0);
-            reviews.forEach(review => {
-                distribution[review.rating - 1]++;
-            });
-
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: ['1★', '2★', '3★', '4★', '5★'],
-                    datasets: [{
-                        label: 'Number of Reviews',
-                        data: distribution,
-                        backgroundColor: '#10B981',
-                        borderRadius: 4,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            ticks: {
-                                stepSize: 1
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: {
-                            display: false
-                        }
-                    }
-                }
-            });
-        }
-
-        function displayReviews(reviews) {
-            const reviewsList = document.getElementById('reviewsList');
-            reviewsList.innerHTML = '';
-
-            if (reviews.length === 0) {
-                reviewsList.innerHTML = `
-                    <div class="text-center py-8 text-gray-500">
-                        No reviews yet. Be the first to share your experience!
-                    </div>
-                `;
-                return;
-            }
-
-            reviews.forEach(review => {
-                const stars = '★'.repeat(review.rating) + '☆'.repeat(5 - review.rating);
-                const date = new Date(review.created_at).toLocaleDateString();
-                
-                reviewsList.innerHTML += `
-                    <div class="py-4">
-                        <div class="flex items-center justify-between mb-2">
-                            <div class="text-yellow-400 text-xl">${stars}</div>
-                            <span class="text-sm text-gray-600">${date}</span>
-                        </div>
-                        <p class="text-gray-700">${review.comment}</p>
-                    </div>
-                `;
-            });
-        }
-
-        async function handleReviewSubmit(event) {
-            event.preventDefault();
-            const form = event.target;
-            const submitButton = form.querySelector('button[type="submit"]');
-            
-            // Show loading state
-            submitButton.disabled = true;
-            submitButton.innerHTML = `
-                <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
-            `;
-
-            try {
-                const formData = new FormData(form);
-                const reviewData = {
-                    productId: '1',  // Replace with actual product ID
-                    userId: 'user123',  // Replace with actual user ID
-                    rating: parseInt(formData.get('rating')),
-                    comment: formData.get('comment')
-                };
-
-                const response = await fetch('https://smart-health-tst.up.railway.app/api/reviews', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(reviewData)
-                });
-
-                if (!response.ok) throw new Error('Failed to submit review');
-
-                // Show success message
-                Toastify({
-                    text: "Review submitted successfully!",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#10B981",
-                }).showToast();
-
-                // Reset form
-                form.reset();
-                
-                // Refresh reviews
-                fetchReviews();
-
-            } catch (error) {
-                console.error('Error:', error);
-                Toastify({
-                    text: "Failed to submit review. Please try again.",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#EF4444",
-                }).showToast();
-            } finally {
-                // Reset button
-                submitButton.disabled = false;
-                submitButton.innerHTML = '<span>Submit Review</span>';
-            }
-        }
-
         // Handle recommendation form submission
         document.getElementById('recommendationForm').addEventListener('submit', async (event) => {
             event.preventDefault();
@@ -892,6 +678,147 @@
                 `;
             }
         });
+
+        // Fungsi untuk fetch dan display reviews
+async function fetchReviews() {
+    const reviewsList = document.getElementById('reviewsList');
+    try {
+        const response = await axios.get('https://smart-health-tst.up.railway.app/api/reviews', {
+            params: { productId: '1' }
+        });
+        
+        if (!response.data) throw new Error('No data received');
+        
+        // Update statistics
+        const reviews = response.data;
+        const avgRating = reviews.length > 0 
+            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+            : '0.0';
+        
+        document.getElementById('averageRating').textContent = avgRating;
+        document.getElementById('totalReviews').textContent = reviews.length;
+        
+        // Display reviews
+        reviewsList.innerHTML = reviews.length === 0 
+            ? `<div class="text-center py-8 text-gray-500">No reviews yet. Be the first to share your experience!</div>`
+            : reviews.map(review => `
+                <div class="py-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-yellow-400 text-xl">
+                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                        </div>
+                        <span class="text-sm text-gray-600">
+                            ${new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <p class="text-gray-700">${review.comment}</p>
+                </div>
+            `).join('');
+            
+    } catch (error) {
+        console.error('Error:', error);
+        reviewsList.innerHTML = `
+            <div class="text-red-500 p-4 rounded-lg bg-red-50">
+                Failed to load reviews. Please try again later.
+            </div>
+        `;
+    }
+}
+
+// Fungsi untuk handle submit review
+async function handleReviewSubmit(event) {
+    event.preventDefault();
+    const form = event.target;
+    const submitButton = form.querySelector('button[type="submit"]');
+    
+    // Show loading state
+    submitButton.disabled = true;
+    submitButton.innerHTML = `
+        <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
+    `;
+
+    try {
+        const formData = new FormData(form);
+        const reviewData = {
+            productId: '1',
+            userId: 'user123',
+            rating: parseInt(formData.get('rating')),
+            comment: formData.get('comment')
+        };
+
+        if (!reviewData.rating || !reviewData.comment) {
+            throw new Error('Rating dan komentar wajib diisi');
+        }
+
+        const response = await axios.post('https://smart-health-tst.up.railway.app/api/reviews', reviewData);
+
+        if (!response.data) throw new Error('Failed to submit review');
+
+        // Show success message
+        Toastify({
+            text: "Review berhasil dikirim!",
+            duration: 3000,
+            gravity: "top",
+            position: "right",
+            backgroundColor: "#10B981",
+        }).showToast();
+
+        // Reset form
+        form.reset();
+        
+        // Refresh reviews
+        fetchReviews();
+
+    } catch (error) {
+        console.error('Error:', error);
+        Toastify({
+            text: error.message || "Gagal mengirim review. Silakan coba lagi.",
+            duration: 3000,
+            gravity: "top",
+            position: "right",
+            backgroundColor: "#EF4444",
+        }).showToast();
+    } finally {
+        // Reset button
+        submitButton.disabled = false;
+        submitButton.innerHTML = '<span>Submit Review</span>';
+    }
+}
+
+// Event listeners
+document.addEventListener('DOMContentLoaded', function() {
+    const reviewForm = document.getElementById('reviewForm');
+    if (reviewForm) {
+        reviewForm.addEventListener('submit', handleReviewSubmit);
+    }
+});
+
+// Update switchTab function untuk load reviews
+function switchTab(tabName) {
+    // Update tab buttons
+    document.querySelectorAll('.tab-button').forEach(button => {
+        if (button.textContent.trim().toLowerCase() === tabName) {
+            button.classList.add('border-emerald-500', 'text-emerald-600');
+            button.classList.remove('border-transparent', 'text-gray-500');
+        } else {
+            button.classList.remove('border-emerald-500', 'text-emerald-600');
+            button.classList.add('border-transparent', 'text-gray-500');
+        }
+    });
+
+    // Show/hide tab content
+    document.querySelectorAll('.tab-content').forEach(content => {
+        if (content.id === `${tabName}-tab`) {
+            content.classList.remove('hidden');
+            // Fetch reviews when switching to reviews tab
+            if (tabName === 'reviews') {
+                fetchReviews();
+            }
+        } else {
+            content.classList.add('hidden');
+        }
+    });
+}
     </script>
 </body>
 </html>
