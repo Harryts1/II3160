@@ -695,73 +695,6 @@
             }
         });
 
-        async function fetchReviews() {
-    const reviewsList = document.getElementById('reviewsList');
-    try {
-        console.log('Fetching reviews...');
-
-        const response = await axios({
-            method: 'get',
-            url: 'https://smart-health-tst.up.railway.app/api/reviews',
-            params: { 
-                productId: '123e4567-e89b-12d3-a456-426614174000'
-            },
-            headers: {
-                'Accept': 'application/json',
-                'Origin': window.location.origin
-            },
-            withCredentials: false
-        });
-
-        console.log('Reviews response:', response);
-
-        const reviews = response.data;
-        if (!reviews || !Array.isArray(reviews)) {
-            throw new Error('Invalid response format');
-        }
-
-        const avgRating = reviews.length > 0 
-            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
-            : '0.0';
-        
-        document.getElementById('averageRating').textContent = avgRating;
-        document.getElementById('totalReviews').textContent = reviews.length;
-        
-        reviewsList.innerHTML = reviews.length === 0 
-            ? `<div class="text-center py-8 text-gray-500">No reviews yet. Be the first to share your experience!</div>`
-            : reviews.map(review => `
-                <div class="py-4">
-                    <div class="flex items-center justify-between mb-2">
-                        <div class="text-yellow-400 text-xl">
-                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
-                        </div>
-                        <span class="text-sm text-gray-600">
-                            ${new Date(review.created_at).toLocaleDateString()}
-                        </span>
-                    </div>
-                    <p class="text-gray-700">${review.comment}</p>
-                </div>
-            `).join('');
-
-    } catch (error) {
-        console.error('Error fetching reviews:', error);
-        
-        let errorMessage = 'Failed to load reviews. ';
-        if (error.response) {
-            errorMessage += error.response.data.message || '';
-        } else if (error.request) {
-            errorMessage += 'Cannot connect to server.';
-        } else {
-            errorMessage += error.message;
-        }
-
-        reviewsList.innerHTML = `
-            <div class="text-red-500 p-4 rounded-lg bg-red-50">
-                ${errorMessage}
-            </div>
-        `;
-    }
-}
 // Tambahkan fungsi validasi
 function validateReviewData(data) {
     if (!data.rating || data.rating < 1 || data.rating > 5) {
@@ -792,22 +725,22 @@ async function handleReviewSubmit(event) {
             comment: formData.get('comment').trim()
         };
 
-        // Debug log
-        console.log('Sending review data:', reviewData);
-
-        const response = await axios({
-            method: 'post',
-            url: 'https://smart-health-tst.up.railway.app/api/reviews',
-            data: reviewData,
+        const response = await fetch('https://smart-health-tst.up.railway.app/api/reviews', {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json',
-                'Origin': window.location.origin
+                'Accept': 'application/json'
             },
-            withCredentials: false // Tambahkan ini
+            mode: 'cors',
+            credentials: 'omit',
+            body: JSON.stringify(reviewData)
         });
 
-        console.log('Response:', response);
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const result = await response.json();
 
         Toastify({
             text: "Review berhasil dikirim!",
@@ -815,7 +748,7 @@ async function handleReviewSubmit(event) {
             gravity: "top",
             position: "right",
             style: {
-                background: "#10B981" // Gunakan style.background alih-alih backgroundColor
+                background: "#10B981"
             }
         }).showToast();
 
@@ -824,19 +757,9 @@ async function handleReviewSubmit(event) {
 
     } catch (error) {
         console.error('Error sending review:', error);
-        
-        let errorMessage = "Gagal mengirim review. ";
-        if (error.response) {
-            errorMessage += error.response.data.message || error.message;
-        } else if (error.request) {
-            errorMessage += "Tidak dapat terhubung ke server.";
-        } else {
-            errorMessage += error.message;
-        }
-
         Toastify({
-            text: errorMessage,
-            duration: 4000,
+            text: "Gagal mengirim review. Silakan coba lagi.",
+            duration: 3000,
             gravity: "top",
             position: "right",
             style: {
@@ -848,6 +771,59 @@ async function handleReviewSubmit(event) {
         submitButton.innerHTML = '<span>Submit Review</span>';
     }
 }
+
+// Dan modifikasi fungsi fetchReviews juga
+async function fetchReviews() {
+    const reviewsList = document.getElementById('reviewsList');
+    try {
+        const response = await fetch(`https://smart-health-tst.up.railway.app/api/reviews?productId=123e4567-e89b-12d3-a456-426614174000`, {
+            method: 'GET',
+            headers: {
+                'Accept': 'application/json'
+            },
+            mode: 'cors',
+            credentials: 'omit'
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+
+        const reviews = await response.json();
+        
+        const avgRating = reviews.length > 0 
+            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+            : '0.0';
+        
+        document.getElementById('averageRating').textContent = avgRating;
+        document.getElementById('totalReviews').textContent = reviews.length;
+        
+        reviewsList.innerHTML = reviews.length === 0 
+            ? `<div class="text-center py-8 text-gray-500">No reviews yet. Be the first to share your experience!</div>`
+            : reviews.map(review => `
+                <div class="py-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-yellow-400 text-xl">
+                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                        </div>
+                        <span class="text-sm text-gray-600">
+                            ${new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <p class="text-gray-700">${review.comment}</p>
+                </div>
+            `).join('');
+            
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        reviewsList.innerHTML = `
+            <div class="text-red-500 p-4 rounded-lg bg-red-50">
+                Failed to load reviews. Please try again later.
+            </div>
+        `;
+    }
+}
+
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     const reviewForm = document.getElementById('reviewForm');
