@@ -376,6 +376,7 @@ from fastapi.middleware.cors import CORSMiddleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://ii3160-production.up.railway.app/"
         "https://18222081-ii3160-fastapiproject.vercel.app",
         "http://localhost:8000",
         "http://127.0.0.1:8000"
@@ -580,7 +581,7 @@ async def logout(request: Request):
     return RedirectResponse(
         url=f"https://{AUTH0_DOMAIN}/v2/logout?"
         f"client_id={AUTH0_CLIENT_ID}&"
-        f"returnTo=https://18222081-ii3160-fastapiproject.vercel.app"
+        f"returnTo=https://ii3160-production.up.railway.app"
     )
 
 @app.get("/complete-profile", response_class=HTMLResponse)

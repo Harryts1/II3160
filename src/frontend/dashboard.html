@@ -29,11 +29,11 @@
         <!-- Tabs -->
         <div class="mb-8">
             <nav class="flex space-x-8 border-b">
-                <button onclick="switchTab('dashboard')" class="tab-button px-4 py-2 border-b-2 border-emerald-500 text-emerald-600 font-medium">
-                    Dashboard
-                </button>
-                <button onclick="switchTab('profile')" class="tab-button px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
+                <button onclick="switchTab('profile')" class="tab-button px-4 py-2 border-b-2 border-emerald-500 text-emerald-600 font-medium">
                     Profile
+                </button>
+                <button onclick="switchTab('dashboard')" class="tab-button px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
+                    Dashboard
                 </button>
                 <button onclick="switchTab('reviews')" class="tab-button px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
                     Reviews
@@ -41,8 +41,56 @@
             </nav>
         </div>
 
+        <!-- Profile Tab -->
+        <div id="profile-tab" class="tab-content hidden">
+            <div class="bg-white p-6 rounded-lg shadow-lg">
+                <h2 class="text-xl font-semibold mb-4">Your Profile</h2>
+                <form id="profileForm" class="space-y-4">
+                    <!-- Profile form fields -->
+                    <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
+                        <label class="block text-gray-700 font-medium">Phone Number</label>
+                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
+                               value="{{ user_profile.phone if user_profile else '' }}"
+                               placeholder="Enter your phone number">
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
+                            <label class="block text-gray-700 font-medium">Age</label>
+                            <input type="number" name="age" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
+                                   value="{{ user_profile.health_profile.age if user_profile else '' }}"
+                                   placeholder="Years">
+                        </div>
+
+                        <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
+                            <label class="block text-gray-700 font-medium">Weight (kg)</label>
+                            <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
+                                   value="{{ user_profile.health_profile.weight if user_profile else '' }}"
+                                   placeholder="Kilograms">
+                        </div>
+
+                        <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
+                            <label class="block text-gray-700 font-medium">Height (cm)</label>
+                            <input type="number" name="height" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
+                                   value="{{ user_profile.health_profile.height if user_profile else '' }}"
+                                   placeholder="Centimeters">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all">
+                        Update Profile
+                    </button>
+                </form>
+            </div>
+        </div>
+
         <!-- Dashboard Tab -->
         <div id="dashboard-tab" class="tab-content">
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
+                <p className="text-red-600 font-medium">
+                Lengkapi profile terlebih dahulu sebelum menggunakan AI
+                </p>
+            </div>
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">AI Menu Recommendations</h2>
 
@@ -176,51 +224,8 @@
                 </div>
             </div>
         </div>
-
-        <!-- Profile Tab -->
-        <div id="profile-tab" class="tab-content hidden">
-            <div class="bg-white p-6 rounded-lg shadow-lg">
-                <h2 class="text-xl font-semibold mb-4">Your Profile</h2>
-                <form id="profileForm" class="space-y-4">
-                    <!-- Profile form fields -->
-                    <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                        <label class="block text-gray-700 font-medium">Phone Number</label>
-                        <input type="tel" name="phone" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
-                               value="{{ user_profile.phone if user_profile else '' }}"
-                               placeholder="Enter your phone number">
-                    </div>
-
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-                        <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                            <label class="block text-gray-700 font-medium">Age</label>
-                            <input type="number" name="age" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
-                                   value="{{ user_profile.health_profile.age if user_profile else '' }}"
-                                   placeholder="Years">
-                        </div>
-
-                        <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                            <label class="block text-gray-700 font-medium">Weight (kg)</label>
-                            <input type="number" name="weight" step="0.1" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
-                                   value="{{ user_profile.health_profile.weight if user_profile else '' }}"
-                                   placeholder="Kilograms">
-                        </div>
-
-                        <div class="transition-all duration-200 hover:shadow-md p-3 rounded-lg">
-                            <label class="block text-gray-700 font-medium">Height (cm)</label>
-                            <input type="number" name="height" class="w-full mt-1 p-2 border rounded focus:ring-2 focus:ring-emerald-500"
-                                   value="{{ user_profile.health_profile.height if user_profile else '' }}"
-                                   placeholder="Centimeters">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="w-full bg-emerald-500 text-white py-3 px-4 rounded-lg hover:bg-emerald-600 transition-all">
-                        Update Profile
-                    </button>
-                </form>
-            </div>
-        </div>
-
-                <!-- Reviews Tab -->
+        
+        <!-- Reviews Tab -->
         <div id="reviews-tab" class="tab-content hidden">
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <!-- Reviews Summary Card -->
