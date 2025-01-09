@@ -88,9 +88,10 @@
         <div id="dashboard-tab" class="tab-content hidden">
             <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
                 <p className="text-red-600 font-medium">
-                Lengkapi profile terlebih dahulu sebelum menggunakan AI
+                  Lengkapi profile terlebih dahulu sebelum menggunakan AI
                 </p>
-            </div>
+              </div>
+              
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">AI Menu Recommendations</h2>
 
@@ -488,10 +489,22 @@
 
             // Show/hide tab content
             document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
+                if (content.id === `${tabName}-tab`) {
+                    content.classList.remove('hidden');
+                } else {
+                    content.classList.add('hidden');
+                }
             });
-            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
+
+            // If switching to reviews tab, fetch reviews
+            if (tabName === 'reviews') {
+                fetchReviews();
+            }
         }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            switchTab('profile');
+        });
 
         // Handle recommendation form submission
         document.getElementById('recommendationForm').addEventListener('submit', async (event) => {
@@ -852,71 +865,6 @@
                 submitButton.innerHTML = '<span>Submit Review</span>';
             }
         }
-
-        // Update your existing switchTab function
-        function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                if (button.textContent.trim().toLowerCase() === tabName) {
-                    button.classList.remove('border-emerald-500', 'text-emerald-600');
-                    button.classList.add('border-transparent', 'text-gray-500');
-                }
-            });
-
-            // Show/hide tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                content.classList.add('hidden');
-            });
-            document.getElementById(`${tabName}-tab`).classList.remove('hidden');
-
-            // If switching to reviews tab, fetch reviews
-            if (tabName === 'reviews') {
-                fetchReviews();
-            }
-        }
-
-        // Your existing profile form submission handler
-        document.getElementById('profileForm').addEventListener('submit', async (event) => {
-            event.preventDefault();
-            const form = event.target;
-            const submitButton = form.querySelector('button[type="submit"]');
-
-            try {
-                submitButton.disabled = true;
-                submitButton.innerHTML = `<div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white mx-auto"></div>`;
-
-                const formData = new FormData(form);
-                const response = await fetch('/update-profile', {
-                    method: 'POST',
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    throw new Error('Failed to update profile');
-                }
-
-                Toastify({
-                    text: "Profile updated successfully!",
-                    duration: 3000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#10B981",
-                }).showToast();
-
-            } catch (error) {
-                console.error('Error:', error);
-                Toastify({
-                    text: error.message || "Failed to update profile",
-                    duration: 4000,
-                    gravity: "top",
-                    position: "right",
-                    backgroundColor: "#EF4444",
-                }).showToast();
-            } finally {
-                submitButton.disabled = false;
-                submitButton.innerHTML = 'Update Profile';
-            }
-        });
 
         // Handle recommendation form submission
         document.getElementById('recommendationForm').addEventListener('submit', async (event) => {
