@@ -90,6 +90,14 @@
 
         <!-- Add this after your Profile tab content and before Dashboard tab -->
         <div id="recipe-tab" class="tab-content hidden">
+
+            <!-- Info Message -->
+            <div class="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <p class="text-blue-700 font-medium flex items-center gap-2">
+                    Ketika layanan catering sedang tidak tersedia, Anda dapat menggunakan fitur Recipe Generator untuk membuat resep dari bahan-bahan yang Anda miliki di rumah! 🍳
+                </p>
+            </div>
+            
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">Recipe Generator</h2>
         
@@ -323,8 +331,9 @@
         function switchTab(tabName) {
         // Update tab buttons
         document.querySelectorAll('.tab-button').forEach(button => {
-            // Ubah pengecekan untuk menangani "Recipe Generator"
-            if (button.textContent.trim().toLowerCase() === tabName.toLowerCase()) {
+            // Perhatikan: kita cek apakah tabName sama dengan 'recipe' untuk tab Recipe Generator
+            if ((tabName === 'recipe' && button.textContent.trim() === 'Recipe Generator') ||
+                button.textContent.trim().toLowerCase() === tabName) {
                 button.classList.add('border-emerald-500', 'text-emerald-600');
                 button.classList.remove('border-transparent', 'text-gray-500');
             } else {
