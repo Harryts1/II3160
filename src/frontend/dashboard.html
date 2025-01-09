@@ -680,14 +680,16 @@
             }
         });
 
-        // Fungsi untuk fetch dan display reviews
+// Modifikasi fungsi fetchReviews
 async function fetchReviews() {
     const reviewsList = document.getElementById('reviewsList');
     try {
+        // Gunakan UUID yang valid untuk productId
         const response = await axios.get('https://smart-health-tst.up.railway.app/api/reviews', {
-            params: { productId: '1' }
+            params: { productId: '123e4567-e89b-12d3-a456-426614174000' } // Ganti dengan UUID yang valid dari server Anda
         });
         
+        // Sisa kode tetap sama
         if (!response.data) throw new Error('No data received');
         
         // Update statistics
@@ -726,13 +728,12 @@ async function fetchReviews() {
     }
 }
 
-// Fungsi untuk handle submit review
+// Modifikasi fungsi handleReviewSubmit juga
 async function handleReviewSubmit(event) {
     event.preventDefault();
     const form = event.target;
     const submitButton = form.querySelector('button[type="submit"]');
     
-    // Show loading state
     submitButton.disabled = true;
     submitButton.innerHTML = `
         <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-white"></div>
@@ -741,8 +742,8 @@ async function handleReviewSubmit(event) {
     try {
         const formData = new FormData(form);
         const reviewData = {
-            productId: '1',
-            userId: 'user123',
+            productId: '123e4567-e89b-12d3-a456-426614174000', // Gunakan UUID yang sama
+            userId: '98765432-10fe-dcba-9876-543210fedcba', // Gunakan UUID yang valid
             rating: parseInt(formData.get('rating')),
             comment: formData.get('comment')
         };
@@ -755,7 +756,6 @@ async function handleReviewSubmit(event) {
 
         if (!response.data) throw new Error('Failed to submit review');
 
-        // Show success message
         Toastify({
             text: "Review berhasil dikirim!",
             duration: 3000,
@@ -764,10 +764,7 @@ async function handleReviewSubmit(event) {
             backgroundColor: "#10B981",
         }).showToast();
 
-        // Reset form
         form.reset();
-        
-        // Refresh reviews
         fetchReviews();
 
     } catch (error) {
@@ -780,7 +777,6 @@ async function handleReviewSubmit(event) {
             backgroundColor: "#EF4444",
         }).showToast();
     } finally {
-        // Reset button
         submitButton.disabled = false;
         submitButton.innerHTML = '<span>Submit Review</span>';
     }
