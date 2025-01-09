@@ -367,6 +367,21 @@
 
     <!-- JavaScript -->
     <script>
+        // Tambahkan ini sebelum semua kode axios
+        axios.defaults.timeout = 10000; // 10 detik timeout
+        axios.defaults.headers.common['Accept'] = 'application/json';
+        axios.interceptors.response.use(
+            response => response,
+            error => {
+                console.error('Axios error:', error);
+                if (error.response) {
+                    console.log('Error data:', error.response.data);
+                    console.log('Error status:', error.response.status);
+                    console.log('Error headers:', error.response.headers);
+                }
+                return Promise.reject(error);
+            }
+        );
         // Tab switching functionality
         function switchTab(tabName) {
             // Update tab buttons
@@ -683,8 +698,8 @@
         async function fetchReviews() {
     const reviewsList = document.getElementById('reviewsList');
     try {
-        console.log('Fetching reviews...'); // Debug log
-        
+        console.log('Fetching reviews...');
+
         const response = await axios({
             method: 'get',
             url: 'https://smart-health-tst.up.railway.app/api/reviews',
@@ -692,31 +707,61 @@
                 productId: '123e4567-e89b-12d3-a456-426614174000'
             },
             headers: {
-                'Accept': 'application/json'
-            }
+                'Accept': 'application/json',
+                'Origin': window.location.origin
+            },
+            withCredentials: false
         });
 
-        console.log('Reviews response:', response); // Debug log
+        console.log('Reviews response:', response);
 
-        if (!response.data) throw new Error('No data received');
-        
         const reviews = response.data;
-        // ... rest of the code remains the same
-    } catch (error) {
-        console.error('Complete fetch error:', {
-            error,
-            response: error.response,
-            request: error.request
-        });
+        if (!reviews || !Array.isArray(reviews)) {
+            throw new Error('Invalid response format');
+        }
+
+        const avgRating = reviews.length > 0 
+            ? (reviews.reduce((acc, r) => acc + r.rating, 0) / reviews.length).toFixed(1)
+            : '0.0';
         
+        document.getElementById('averageRating').textContent = avgRating;
+        document.getElementById('totalReviews').textContent = reviews.length;
+        
+        reviewsList.innerHTML = reviews.length === 0 
+            ? `<div class="text-center py-8 text-gray-500">No reviews yet. Be the first to share your experience!</div>`
+            : reviews.map(review => `
+                <div class="py-4">
+                    <div class="flex items-center justify-between mb-2">
+                        <div class="text-yellow-400 text-xl">
+                            ${'★'.repeat(review.rating)}${'☆'.repeat(5 - review.rating)}
+                        </div>
+                        <span class="text-sm text-gray-600">
+                            ${new Date(review.created_at).toLocaleDateString()}
+                        </span>
+                    </div>
+                    <p class="text-gray-700">${review.comment}</p>
+                </div>
+            `).join('');
+
+    } catch (error) {
+        console.error('Error fetching reviews:', error);
+        
+        let errorMessage = 'Failed to load reviews. ';
+        if (error.response) {
+            errorMessage += error.response.data.message || '';
+        } else if (error.request) {
+            errorMessage += 'Cannot connect to server.';
+        } else {
+            errorMessage += error.message;
+        }
+
         reviewsList.innerHTML = `
             <div class="text-red-500 p-4 rounded-lg bg-red-50">
-                ${error.response?.data?.message || error.message || 'Failed to load reviews. Please try again later.'}
+                ${errorMessage}
             </div>
         `;
     }
 }
-
 // Tambahkan fungsi validasi
 function validateReviewData(data) {
     if (!data.rating || data.rating < 1 || data.rating > 5) {
@@ -728,7 +773,6 @@ function validateReviewData(data) {
     return true;
 }
 
-// Modifikasi handleReviewSubmit untuk menggunakan validasi
 async function handleReviewSubmit(event) {
     event.preventDefault();
     const form = event.target;
@@ -748,10 +792,8 @@ async function handleReviewSubmit(event) {
             comment: formData.get('comment').trim()
         };
 
-        // Validasi data
-        validateReviewData(reviewData);
-
-        console.log('Sending review data:', reviewData); // Debug log
+        // Debug log
+        console.log('Sending review data:', reviewData);
 
         const response = await axios({
             method: 'post',
@@ -759,43 +801,53 @@ async function handleReviewSubmit(event) {
             data: reviewData,
             headers: {
                 'Content-Type': 'application/json',
-                'Accept': 'application/json'
-            }
+                'Accept': 'application/json',
+                'Origin': window.location.origin
+            },
+            withCredentials: false // Tambahkan ini
         });
 
-        console.log('Response:', response); // Debug log
+        console.log('Response:', response);
 
         Toastify({
             text: "Review berhasil dikirim!",
             duration: 3000,
             gravity: "top",
             position: "right",
-            backgroundColor: "#10B981",
+            style: {
+                background: "#10B981" // Gunakan style.background alih-alih backgroundColor
+            }
         }).showToast();
 
         form.reset();
         await fetchReviews();
 
     } catch (error) {
-        console.error('Complete error:', {
-            error,
-            response: error.response,
-            request: error.request
-        });
+        console.error('Error sending review:', error);
         
+        let errorMessage = "Gagal mengirim review. ";
+        if (error.response) {
+            errorMessage += error.response.data.message || error.message;
+        } else if (error.request) {
+            errorMessage += "Tidak dapat terhubung ke server.";
+        } else {
+            errorMessage += error.message;
+        }
+
         Toastify({
-            text: error.response?.data?.message || error.message || "Gagal mengirim review. Silakan coba lagi.",
-            duration: 3000,
+            text: errorMessage,
+            duration: 4000,
             gravity: "top",
             position: "right",
-            backgroundColor: "#EF4444",
+            style: {
+                background: "#EF4444"
+            }
         }).showToast();
     } finally {
         submitButton.disabled = false;
         submitButton.innerHTML = '<span>Submit Review</span>';
     }
 }
-
 // Event listeners
 document.addEventListener('DOMContentLoaded', function() {
     const reviewForm = document.getElementById('reviewForm');
