@@ -321,31 +321,27 @@
     <script>
         // Tab switching functionality
         function switchTab(tabName) {
-            // Update tab buttons
-            document.querySelectorAll('.tab-button').forEach(button => {
-                if (button.textContent.trim().toLowerCase() === tabName) {
-                    button.classList.add('border-emerald-500', 'text-emerald-600');
-                    button.classList.remove('border-transparent', 'text-gray-500');
-                } else {
-                    button.classList.remove('border-emerald-500', 'text-emerald-600');
-                    button.classList.add('border-transparent', 'text-gray-500');
-                }
-            });
-
-            // Show/hide tab content
-            document.querySelectorAll('.tab-content').forEach(content => {
-                if (content.id === `${tabName}-tab`) {
-                    content.classList.remove('hidden');
-                } else {
-                    content.classList.add('hidden');
-                }
-            });
-
-            // If switching to reviews tab, fetch reviews
-            if (tabName === 'reviews') {
-                fetchReviews();
+        // Update tab buttons
+        document.querySelectorAll('.tab-button').forEach(button => {
+            // Ubah pengecekan untuk menangani "Recipe Generator"
+            if (button.textContent.trim().toLowerCase() === tabName.toLowerCase()) {
+                button.classList.add('border-emerald-500', 'text-emerald-600');
+                button.classList.remove('border-transparent', 'text-gray-500');
+            } else {
+                button.classList.remove('border-emerald-500', 'text-emerald-600');
+                button.classList.add('border-transparent', 'text-gray-500');
             }
-        }
+        });
+
+        // Show/hide tab content
+        document.querySelectorAll('.tab-content').forEach(content => {
+            if (content.id === `${tabName}-tab`) {
+                content.classList.remove('hidden');
+            } else {
+                content.classList.add('hidden');
+            }
+        });
+    }
 
         document.addEventListener('DOMContentLoaded', function() {
             switchTab('profile');
