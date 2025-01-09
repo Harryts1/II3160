@@ -40,7 +40,7 @@
                     Dashboard
                 </button>
                 <button onclick="switchTab('recipe')" class="tab-button px-4 py-2 border-b-2 border-transparent text-gray-500 hover:text-gray-700 font-medium">
-                    Recipe Generator
+                    Recipe
                 </button>
             </nav>
         </div>
@@ -97,7 +97,7 @@
                     Ketika layanan catering sedang tidak tersedia, Anda dapat menggunakan fitur Recipe Generator untuk membuat resep dari bahan-bahan yang Anda miliki di rumah! 🍳
                 </p>
             </div>
-            
+
             <div class="bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">Recipe Generator</h2>
         
@@ -323,34 +323,30 @@
                 <p class="text-gray-400">&copy; 2024 Health Based Dietary Catering. All rights reserved.</p>
             </div>
         </div>
-    </footer>
+        <footer class="mt-12 bg-gray-800 text-white py-12 sticky bottom-0 w-full">
+    </footer> 
 
     <!-- JavaScript -->
     <script>
         // Tab switching functionality
         function switchTab(tabName) {
-        // Update tab buttons
-        document.querySelectorAll('.tab-button').forEach(button => {
-            // Perhatikan: kita cek apakah tabName sama dengan 'recipe' untuk tab Recipe Generator
-            if ((tabName === 'recipe' && button.textContent.trim() === 'Recipe Generator') ||
-                button.textContent.trim().toLowerCase() === tabName) {
-                button.classList.add('border-emerald-500', 'text-emerald-600');
-                button.classList.remove('border-transparent', 'text-gray-500');
-            } else {
-                button.classList.remove('border-emerald-500', 'text-emerald-600');
-                button.classList.add('border-transparent', 'text-gray-500');
-            }
-        });
+            document.querySelectorAll('.tab-button').forEach(button => {
+                if (button.textContent.trim().toLowerCase() === 'recipe' && tabName === 'recipe') {
+                    button.classList.add('border-emerald-500', 'text-emerald-600');
+                    button.classList.remove('border-transparent', 'text-gray-500');
+                } else if (button.textContent.trim().toLowerCase() === tabName) {
+                    button.classList.add('border-emerald-500', 'text-emerald-600');
+                    button.classList.remove('border-transparent', 'text-gray-500');
+                } else {
+                    button.classList.remove('border-emerald-500', 'text-emerald-600');
+                    button.classList.add('border-transparent', 'text-gray-500');
+                }
+            });
 
-        // Show/hide tab content
-        document.querySelectorAll('.tab-content').forEach(content => {
-            if (content.id === `${tabName}-tab`) {
-                content.classList.remove('hidden');
-            } else {
-                content.classList.add('hidden');
-            }
-        });
-    }
+            document.querySelectorAll('.tab-content').forEach(content => {
+                content.classList.toggle('hidden', content.id !== `${tabName}-tab`);
+            });
+        }
 
         document.addEventListener('DOMContentLoaded', function() {
             switchTab('profile');
