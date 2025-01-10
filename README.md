@@ -43,6 +43,14 @@ II3160/
 └── README.md           # Dokumentasi proyek
 ```
 
+## 🌐 Link Penting
+- Website: https://ii3160-production.up.railway.app/
+- Dokumentasi API: https://ii3160-production.up.railway.app/docs
+- Repository GitHub: https://github.com/Harryts1/II3160
+
+## 📄 Dokumentasi
+Dokumentasi lengkap termasuk laporan tugas besar dapat ditemukan di direktori `docs`.
+
 ## 💡 Panduan Integrasi API
 
 ### 1. Persiapan
@@ -326,14 +334,6 @@ GROQ_API_KEY=api_key_groq_anda
 ```bash
 uvicorn main:app --reload
 ```
-
-## 🌐 Link Penting
-- Website: https://ii3160-production.up.railway.app/
-- Dokumentasi API: https://ii3160-production.up.railway.app/docs
-- Repository GitHub: https://github.com/Harryts1/II3160
-
-## 📄 Dokumentasi
-Dokumentasi lengkap termasuk laporan tugas besar dapat ditemukan di direktori `docs`.
 
 ## 👥 Kontributor
 - Harry Truman Suhalim (18222081)
