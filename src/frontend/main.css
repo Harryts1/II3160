@@ -34,7 +34,6 @@ body {
     100% { transform: scale(1); }
 }
 
-/* Enhanced Card Styles */
 .menu-card {
     transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
     transform-style: preserve-3d;
@@ -65,7 +64,6 @@ body {
     padding: 1.5rem;
 }
 
-/* Enhanced Form Styles */
 .form-input {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -90,7 +88,6 @@ body {
     color: #374151;
 }
 
-/* Custom Checkbox */
 input[type="checkbox"] {
     position: relative;
     width: 1.5em;
@@ -119,7 +116,6 @@ input[type="checkbox"]:checked::before {
     transform: translate(-50%, -50%);
 }
 
-/* Enhanced Button Styles */
 .btn {
     position: relative;
     padding: 0.75rem 1.5rem;
@@ -164,7 +160,6 @@ input[type="checkbox"]:checked::before {
     background-color: #059669;
 }
 
-/* Enhanced WhatsApp Button */
 .whatsapp-btn {
     position: fixed;
     bottom: 2rem;

@@ -88,7 +88,6 @@
             </div>
         </div>
 
-        <!-- Add this after your Profile tab content and before Dashboard tab -->
         <div id="recipe-tab" class="tab-content hidden">
 
             <!-- Info Message -->
@@ -122,7 +121,6 @@
                 </div>
             </div>
 
-            <!-- Tambahkan setelah div recipeResults -->
             <div class="mt-12 bg-white rounded-lg shadow-lg p-6">
                 <h2 class="text-2xl font-bold mb-6 text-gray-800">Popular Recipe Categories</h2>
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -544,33 +542,6 @@
             }
         });
 
-// Update switchTab function untuk load reviews
-function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        if (button.textContent.trim().toLowerCase() === tabName) {
-            button.classList.add('border-emerald-500', 'text-emerald-600');
-            button.classList.remove('border-transparent', 'text-gray-500');
-        } else {
-            button.classList.remove('border-emerald-500', 'text-emerald-600');
-            button.classList.add('border-transparent', 'text-gray-500');
-        }
-    });
-
-    // Show/hide tab content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        if (content.id === `${tabName}-tab`) {
-            content.classList.remove('hidden');
-            // Fetch reviews when switching to reviews tab
-            if (tabName === 'reviews') {
-                fetchReviews();
-            }
-        } else {
-            content.classList.add('hidden');
-        }
-    });
-}
-// Add this to your existing JavaScript section
 async function generateRecipe() {
     const ingredientInput = document.getElementById('ingredientInput');
     const generateButton = document.getElementById('generateButton');
@@ -651,40 +622,16 @@ async function generateRecipe() {
         `;
         recipeResults.classList.remove('hidden');
     } finally {
-        // Reset button state
         generateButton.disabled = false;
         generateButton.innerHTML = 'Generate Recipe';
     }
-}
-
-// Update your existing switchTab function to include the recipe tab
-function switchTab(tabName) {
-    // Update tab buttons
-    document.querySelectorAll('.tab-button').forEach(button => {
-        if (button.textContent.trim().toLowerCase() === tabName) {
-            button.classList.add('border-emerald-500', 'text-emerald-600');
-            button.classList.remove('border-transparent', 'text-gray-500');
-        } else {
-            button.classList.remove('border-emerald-500', 'text-emerald-600');
-            button.classList.add('border-transparent', 'text-gray-500');
-        }
-    });
-
-    // Show/hide tab content
-    document.querySelectorAll('.tab-content').forEach(content => {
-        if (content.id === `${tabName}-tab`) {
-            content.classList.remove('hidden');
-        } else {
-            content.classList.add('hidden');
-        }
-    });
 }
     </script>
 
     <script>
         window.MUSICMATE_API_KEY = 'mk_T8DJoHYd9Nw3zKt9IXM-dcAMVW0E0FgXYFH2QZujGp0 ';
     </script>
-    
+
     <script src="https://spotify-bot.azurewebsites.net/static/js/widget-loader.js"></script>
 </body>
 </html>

@@ -456,7 +456,6 @@ async def get_current_user(request: Request):
 # Routes
 @app.get("/health")
 def health_check():
-    # Sangat sederhana, tidak ada async, tidak ada database check
     return {"status": "ok"}
 
 @app.get("/")
@@ -591,7 +590,6 @@ async def complete_profile(request: Request):
         return RedirectResponse(url='/login')
         
     try:
-        # Check if profile is complete
         if mongodb_db:
             db_user = await mongodb_db.users.find_one({"email": user.get("email")})
             if db_user and db_user.get('health_profile', {}).get('age', 0) > 0:
