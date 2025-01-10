@@ -16,22 +16,31 @@ Aplikasi web berbasis FastAPI yang menyediakan rekomendasi diet dan layanan pere
 ## 🏗️ Struktur Repository
 ```
 II3160/
-├── docs/                   # Dokumentasi dan laporan
+├── docs/                  # Dokumentasi dan laporan
 │   └── Tugas_Besar.pdf    # Laporan tugas besar
 ├── src/                   # Kode sumber
-│   ├── frontend/         # File HTML/CSS/JS
-│   ├── _pycache_/       # Cache Python
-│   └── venv/            # Virtual environment Python
-├── railway.toml          # Konfigurasi Railway
-├── Dockerfile           # Konfigurasi Docker
-├── docker-compose.yml   # Konfigurasi Docker Compose
-├── Procfile            # File proses untuk deployment
-├── main.py             # File utama aplikasi
-├── package.json        # Dependensi Node.js
-├── package-lock.json   # Locked dependensi Node.js
-├── requirements.txt    # Dependensi Python
-├── runtime.txt        # Spesifikasi runtime Python
-└── README.md          # Dokumentasi proyek
+│   ├── frontend/               # File HTML/CSS/JS
+│   │   ├── image               # Daftar gambar yang digunakan
+│   │   │   ├── AF.png
+│   │   │   ├── GS.png
+│   │   │   ├── HB.jpg
+│   │   │   ├── MB.jpg
+│   │   │   ├── QP.jpg
+│   │   │   └── VBB.jpg
+│   │   ├── dashboard.html      # HTML dashboard
+│   │   ├── index.html          # HTML hero page
+│   │   ├── main.css            # CSS yang digunakan
+│   │   └── main.js             # Java Script yang digunakan
+│   ├── _pycache_/           # Cache Python
+│   ├── Dockerfile           # Konfigurasi Docker
+│   ├── docker-compose.yml   # Konfigurasi Docker Compose
+│   ├── main.py              # File utama backend
+│   ├── Procfile             # File proses untuk deployment
+│   ├── requirements.txt     # Dependensi python
+│   └── runtime.txt          # Versi Python yang digunakan
+├── railway.toml        # Konfigurasi Railway
+├── venv                # Virtual environment Python
+└── README.md           # Dokumentasi proyek
 ```
 
 ## 💡 Panduan Integrasi API
