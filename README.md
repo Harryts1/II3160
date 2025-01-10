@@ -120,10 +120,54 @@ def create_diet_plan(user_id, plan_details):
 
 ### 3. API Terintegrasi
 
-#### Recipe Generator API (Steven Adrian Corne – 18222101)
+#### Recipe Generator API (Steven Adrian Corne - 18222101)
+API ini digunakan untuk menghasilkan resep berdasarkan bahan-bahan yang tersedia.
 
-#### Chatbot API (Jonathan Wiguna – 18222019)
+```javascript
+// Contoh penggunaan Recipe Generator API
+async function generateRecipe() {
+    const response = await fetch('https://smart-health-tst.up.railway.app/api/recipes', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-API-KEY': 'your_api_key_here'
+        },
+        body: JSON.stringify({ 
+            ingredients: ['bahan1', 'bahan2', 'bahan3'] 
+        })
+    });
+    
+    const data = await response.json();
+    return data.recipes; // Returns array of recipe recommendations
+}
+```
 
+Respons API:
+```json
+{
+    "recipes": [
+        {
+            "name": "Nama Resep",
+            "description": "Deskripsi resep",
+            "ingredients": ["bahan1", "bahan2", "bahan3"],
+            "instructions": ["langkah1", "langkah2", "langkah3"]
+        }
+    ]
+}
+```
+
+#### Chatbot Integration (Jonathan Wiguna - 18222019)
+Chatbot diimplementasikan menggunakan script injection dari MusicMate. Integrasi dilakukan dengan menambahkan script berikut ke dalam HTML:
+
+```html
+<!-- Konfigurasi API Key -->
+<script>
+    window.MUSICMATE_API_KEY = 'mk_T8DJoHYd9Nw3zKt9IXM-dcAMVW0E0FgXYFH2QZujGp0';
+</script>
+
+<!-- Load Widget -->
+<script src="https://spotify-bot.azurewebsites.net/static/js/widget-loader.js"></script>
+```
 
 ## 🚀 Endpoints API
 
